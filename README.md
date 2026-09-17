@@ -35,12 +35,16 @@ Sistema de detección de somnolencia y fatiga del conductor mediante visión art
 
 ### 1. Backend (puerto 4000)
 
-> En este entorno no hay `npm`, se usa **pnpm**. MySQL no está activo → el sistema corre en modo memoria (demo) automáticamente.
+> En este entorno no hay `npm`, se usa **pnpm**.  
+> 📚 Estado detallado del proyecto, RF cubiertos y roadmap: [`docs/ESTADO_DEL_PROYECTO.md`](docs/ESTADO_DEL_PROYECTO.md).  
+> 📦 Historial de versiones: [`CHANGELOG.md`](CHANGELOG.md).
 
 ```bash
 cd backend
 pnpm install
-pnpm start        # http://localhost:4000/api/health
+pnpm db:setup    # aplica esquema + seed en MySQL (opcional; ver MYSQL_URL en backend/.env)
+pnpm test        # suite automatizada (6 tests) sobre el módulo transversal
+pnpm start       # http://localhost:4000/api/health · Swagger: http://localhost:4000/api/docs
 ```
 
 Credenciales admin: `bandreswscanga@hgmail.com` / `5304566767`
@@ -92,6 +96,14 @@ URL de la API por defecto: `http://10.0.2.2:4000` (emulador Android). Se puede c
 | POST   | `/api/telemetry/drowsiness-test` | Prueba del módulo de cámara IA del panel (`nivel`: BAJO/MEDIO/CRITICO); CRITICO genera alerta activa |
 | GET    | `/api/live/stream`         | SSE en tiempo real                  |
 | GET    | `/api/safe-zones`          | Zonas seguras (RF9)                 |
+| GET    | `/api/system/logs`         | Trazabilidad `system_logs` (solo admin) |
+| GET    | `/api/docs`                | Documentación de la API (Swagger UI) |
+
+## Módulo transversal (Fase 2)
+
+- **`/api/health`**: ruta pública que devuelve estado del servidor, uptime y un ping a la base de datos.
+- **`system_logs`**: tabla de trazabilidad ciega (id, fecha_hora, nivel INFO/WARNING/ERROR, origen_ip, mensaje)
+  con auto-registro de intentos de login fallido y errores de conexión a la base de datos.
 
 ## Notas de entorno verificadas
 
