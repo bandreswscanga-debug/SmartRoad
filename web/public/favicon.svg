@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0a0e14"/>
+  <path d="M32 10 56 52H8L32 10Z" fill="#ef2d3c"/>
+  <circle cx="32" cy="40" r="6" fill="#0a0e14"/>
+  <circle cx="32" cy="40" r="2.6" fill="#ef2d3c"/>
+  <text x="32" y="14" font-family="monospace" font-size="7" fill="#ff4d5a" text-anchor="middle" font-weight="bold">S.O.S</text>
+</svg>
