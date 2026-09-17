@@ -22,7 +22,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const configRoutes = require('./routes/config');
 const safezoneRoutes = require('./routes/safezones');
 
-async function main() {
+async function createApp() {
   const store = await createStore();
   const engine = createEngine(store);
   const tracer = createTracer(store);
@@ -118,7 +118,6 @@ async function main() {
   app.use((err, _req, res, _next) => {
     const mensaje = String(err && err.message ? err.message : err);
     const esBD = /query|connect|ECONNREFUSED|pool|ER_|can't|database/i.test(mensaje);
-    const nivel = esBD ? 'ERROR' : 'ERROR';
     tracer.error(
       `[SERVER] ${esBD ? 'Error de conexión a la base de datos' : 'Error no controlado'}: ${mensaje.slice(0, 400)}`
     );
@@ -126,14 +125,23 @@ async function main() {
     res.status(500).json({ error: 'Error interno del servidor', detalle: esBD ? 'Fallo al conectar con la base de datos' : mensaje.slice(0, 200) });
   });
 
+  return { app, engine, store, tracer, ctx };
+}
+
+async function start() {
+  const { app, engine } = await createApp();
   const PORT = Number(process.env.PORT) || 4000;
-  app.listen(PORT, () => {
+  return app.listen(PORT, () => {
     console.log(`[SmartRoad S.O.S] API lista en http://localhost:${PORT}`);
     engine.start();
   });
 }
 
-main().catch((err) => {
-  console.error('[SmartRoad S.O.S] Error al iniciar el servidor:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch((err) => {
+    console.error('[SmartRoad S.O.S] Error al iniciar el servidor:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { createApp, start };
