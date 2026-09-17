@@ -3,13 +3,27 @@ const bcrypt = require('bcryptjs');
 const { requireAuth, sign } = require('../middleware/auth');
 const { clientIp } = require('../services/tracer');
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const MAX_EMAIL = 200;
+const MAX_PASSWORD = 128;
+
+function validateLogin(email, password) {
+  if (!email || !password) return 'Correo y contraseña son obligatorios';
+  if (String(email).length > MAX_EMAIL || !EMAIL_RE.test(String(email))) return 'Correo electrónico inválido';
+  if (String(password).length < 4 || String(password).length > MAX_PASSWORD) {
+    return 'La contraseña debe tener entre 4 y 128 caracteres';
+  }
+  return null;
+}
+
 module.exports = (store, ctx = {}) => {
   const router = express.Router();
   const tracer = ctx.tracer;
 
   router.post('/login', async (req, res) => {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'Correo y contraseña son obligatorios' });
+    const erro = validateLogin(email, password);
+    if (erro) return res.status(400).json({ error: erro });
     const ip = tracer ? clientIp(req) : null;
     const user = await store.findUserByEmail(String(email).toLowerCase());
     if (!user) {

@@ -3,6 +3,8 @@ require('express-async-errors');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { createStore } = require('./services/storage');
 const { createEngine } = require('./services/engine');
 const { createTracer } = require('./services/tracer');
@@ -31,6 +33,19 @@ async function main() {
   }
 
   const app = express();
+  app.use(
+    helmet({
+      contentSecurityPolicy: false
+    })
+  );
+  app.use(express.json({ limit: '100kb' }));
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiados intentos de inicio de sesión. Intente nuevamente en unos minutos.' }
+  });
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:4173')
     .split(',')
     .map((s) => s.trim())
@@ -44,7 +59,6 @@ async function main() {
       credentials: true
     })
   );
-  app.use(express.json());
 
   app.get('/api/health', async (_req, res) => {
     const uptime = engine.uptimeSec();
@@ -68,7 +82,7 @@ async function main() {
     });
   });
 
-  app.use('/api/auth', authRoutes(store, ctx));
+  app.use('/api/auth', authLimiter, authRoutes(store, ctx));
   app.use('/api/dashboard', dashboardRoutes(store, ctx));
   app.use('/api/vehicles', vehicleRoutes(store));
   app.use('/api/drivers', driverRoutes(store));
