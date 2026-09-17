@@ -11,6 +11,8 @@ const { createTracer } = require('./services/tracer');
 const { requireAuth, requireAdmin } = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/openapi');
 const vehicleRoutes = require('./routes/vehicles');
 const driverRoutes = require('./routes/drivers');
 const eventRoutes = require('./routes/events');
@@ -100,6 +102,8 @@ async function main() {
       res.status(500).json({ error: 'No se pudieron leer los logs', detalle: err.message });
     }
   });
+
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: 'SmartRoad S.O.S API — Documentación' }));
 
   app.get('/api/live/stream', engine.sseHandler);
 
