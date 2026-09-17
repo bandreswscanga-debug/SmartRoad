@@ -1,0 +1,37 @@
+# Dependencias
+node_modules/
+
+# Builds y artefactos
+dist/
+build/
+web/dist/
+mobile/build/
+.android/
+.gradle/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.apk
+*.aab
+*.keystore
+
+# Entorno y secretos
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE / SO
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# Certificados / claves
+*.pem
+*.p12
