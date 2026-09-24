@@ -10,13 +10,21 @@ async function setup() {
     process.exit(0);
   }
   const conn = await mysql.createConnection(url);
-  const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'database', 'schema.sql'), 'utf8');
-  const statements = sql
-    .split(/;\s*\n/)
-    .map((s) => s.trim())
-    .filter((s) => s.length);
-  for (const stmt of statements) {
-    await conn.query(stmt);
+  const schemaFiles = ['schema.sql', 'crud_schema.sql'];
+  for (const schemaFile of schemaFiles) {
+    const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'database', schemaFile), 'utf8');
+    const statements = sql
+      .split(/;\s*\n/)
+      .map((s) => s.trim())
+      .filter((s) => s.length && !s.startsWith('--'));
+    for (const stmt of statements) {
+      try {
+        await conn.query(stmt);
+      } catch (error) {
+        // MySQL no tiene CREATE INDEX IF NOT EXISTS; ignora únicamente índices ya existentes.
+        if (error.code !== 'ER_DUP_KEYNAME' && error.errno !== 1061) throw error;
+      }
+    }
   }
   console.log('[SmartRoad S.O.S] Esquema MySQL aplicado correctamente.');
   await conn.end();

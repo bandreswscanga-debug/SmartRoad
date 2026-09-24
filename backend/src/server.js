@@ -21,6 +21,7 @@ const telemetryRoutes = require('./routes/telemetry');
 const dashboardRoutes = require('./routes/dashboard');
 const configRoutes = require('./routes/config');
 const safezoneRoutes = require('./routes/safezones');
+const smartroadCrudRoutes = require('./routes/smartroad-crud.routes');
 
 async function createApp() {
   const store = await createStore();
@@ -83,6 +84,9 @@ async function createApp() {
       now: new Date().toISOString()
     });
   });
+
+  // CRUD singular solicitado; las rutas plurales existentes permanecen intactas.
+  app.use('/api', smartroadCrudRoutes);
 
   app.use('/api/auth', authLimiter, authRoutes(store, ctx));
   app.use('/api/dashboard', dashboardRoutes(store, ctx));
