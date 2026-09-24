@@ -1,0 +1,421 @@
+{
+  "info": {
+    "_postman_id": "0133b6a2-b700-4a9f-9b40-3a7c9c8d2e10",
+    "name": "SmartRoad S.O.S. - CRUD",
+    "description": "Colección exportada del CRUD singular de SmartRoad S.O.S. Endpoints GET, POST, PUT y DELETE para las cinco entidades principales: conductor, vehiculo, dispositivo, evento y alerta. Base de datos: smartroad_sos. Variable: {{baseUrl}} = http://127.0.0.1:4000.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:4000"
+    }
+  ],
+  "item": [
+    {
+      "name": "conductor",
+      "description": "CRUD de la tabla conductor (eslabón inicial de la cadena conductor -> vehiculo -> dispositivo -> evento -> alerta).",
+      "item": [
+        {
+          "name": "GET /api/conductor - Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conductor"]
+            },
+            "description": "Lista todos los conductores."
+          }
+        },
+        {
+          "name": "GET /api/conductor/:id - Obtener",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conductor", ":id"]
+            },
+            "description": "Obtiene un conductor por id_conductor."
+          }
+        },
+        {
+          "name": "POST /api/conductor - Crear",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Conductor Evidencia Parte 2\", \"documento\": \"987654321\", \"telefono\": \"3125550101\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conductor"]
+            },
+            "description": "Crea un conductor. 'estado' es opcional, por defecto 'activo'. Respuesta esperada: 201."
+          }
+        },
+        {
+          "name": "PUT /api/conductor/:id - Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Conductor Evidencia Actualizado\", \"documento\": \"987654321\", \"telefono\": \"3125550102\", \"estado\": \"activo\" }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conductor", ":id"]
+            },
+            "description": "Actualiza un conductor existente. Respuesta esperada: 200."
+          }
+        },
+        {
+          "name": "DELETE /api/conductor/:id - Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conductor", ":id"]
+            },
+            "description": "Elimina un conductor sin registros relacionados. Respuesta esperada: 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "vehiculo",
+      "description": "CRUD de la tabla vehiculo. Requiere id_conductor existente.",
+      "item": [
+        {
+          "name": "GET /api/vehiculo - Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehiculo"]
+            },
+            "description": "Lista todos los vehículos con el JOIN del conductor (nombre_conductor, telefono_conductor, estado_conductor)."
+          }
+        },
+        {
+          "name": "GET /api/vehiculo/:id - Obtener",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehiculo", ":id"]
+            },
+            "description": "Obtiene un vehículo por id_vehiculo."
+          }
+        },
+        {
+          "name": "POST /api/vehiculo - Crear",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"placa\": \"ABC-123\", \"tipo\": \"Camioneta\", \"id_conductor\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehiculo"]
+            },
+            "description": "Crea un vehículo. id_conductor debe existir. Respuesta esperada: 201."
+          }
+        },
+        {
+          "name": "PUT /api/vehiculo/:id - Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"placa\": \"ABC-123\", \"tipo\": \"Camioneta\", \"id_conductor\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehiculo", ":id"]
+            },
+            "description": "Actualiza un vehículo existente. Respuesta esperada: 200."
+          }
+        },
+        {
+          "name": "DELETE /api/vehiculo/:id - Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehiculo", ":id"]
+            },
+            "description": "Elimina un vehículo sin dispositivos asociados. Respuesta esperada: 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "dispositivo",
+      "description": "CRUD de la tabla dispositivo. Requiere id_vehiculo existente y no duplicado (relacion 1:1 con vehiculo).",
+      "item": [
+        {
+          "name": "GET /api/dispositivo - Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dispositivo"]
+            },
+            "description": "Lista todos los dispositivos con JOIN de vehiculo y conductor."
+          }
+        },
+        {
+          "name": "GET /api/dispositivo/:id - Obtener",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dispositivo", ":id"]
+            },
+            "description": "Obtiene un dispositivo por id_dispositivo."
+          }
+        },
+        {
+          "name": "POST /api/dispositivo - Crear",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_sensor\": \"Camara\", \"id_vehiculo\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dispositivo"]
+            },
+            "description": "Crea un dispositivo. 'estado' es opcional (default 'activo'). Respuesta esperada: 201. Si el vehiculo ya tiene dispositivo: 409."
+          }
+        },
+        {
+          "name": "PUT /api/dispositivo/:id - Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_sensor\": \"Camara\", \"estado\": \"activo\", \"id_vehiculo\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dispositivo", ":id"]
+            },
+            "description": "Actualiza un dispositivo existente. Respuesta esperada: 200."
+          }
+        },
+        {
+          "name": "DELETE /api/dispositivo/:id - Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dispositivo", ":id"]
+            },
+            "description": "Elimina un dispositivo sin eventos asociados. Respuesta esperada: 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "evento",
+      "description": "CRUD de la tabla evento. Requiere id_dispositivo existente.",
+      "item": [
+        {
+          "name": "GET /api/evento - Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evento",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "evento"]
+            },
+            "description": "Lista todos los eventos con JOIN de dispositivo, vehiculo y conductor."
+          }
+        },
+        {
+          "name": "GET /api/evento/:id - Obtener",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evento/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "evento", ":id"]
+            },
+            "description": "Obtiene un evento por id_evento."
+          }
+        },
+        {
+          "name": "POST /api/evento - Crear",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_evento\": \"MICRO_SUENO\", \"nivel_riesgo\": \"CRITICO\", \"id_dispositivo\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/evento",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "evento"]
+            },
+            "description": "Crea un evento. 'fecha_hora' es opcional (default CURRENT_TIMESTAMP). Respuesta esperada: 201."
+          }
+        },
+        {
+          "name": "PUT /api/evento/:id - Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_evento\": \"MICRO_SUENO\", \"fecha_hora\": \"2026-09-24 10:00:00\", \"nivel_riesgo\": \"CRITICO\", \"id_dispositivo\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/evento/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "evento", ":id"]
+            },
+            "description": "Actualiza un evento existente. Respuesta esperada: 200."
+          }
+        },
+        {
+          "name": "DELETE /api/evento/:id - Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evento/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "evento", ":id"]
+            },
+            "description": "Elimina un evento sin alertas asociadas. Respuesta esperada: 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "alerta",
+      "description": "CRUD de la tabla alerta. Requiere id_evento existente.",
+      "item": [
+        {
+          "name": "GET /api/alerta - Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerta"]
+            },
+            "description": "Lista todas las alertas con JOIN de evento, dispositivo, vehiculo y conductor."
+          }
+        },
+        {
+          "name": "GET /api/alerta/:id - Obtener",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerta", ":id"]
+            },
+            "description": "Obtiene una alerta por id_alerta."
+          }
+        },
+        {
+          "name": "POST /api/alerta - Crear",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_alerta\": \"SONORA\", \"id_evento\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerta"]
+            },
+            "description": "Crea una alerta. 'estado' es opcional (default 'pendiente'). Respuesta esperada: 201."
+          }
+        },
+        {
+          "name": "PUT /api/alerta/:id - Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"tipo_alerta\": \"SONORA\", \"estado\": \"activa\", \"id_evento\": 1 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerta", ":id"]
+            },
+            "description": "Actualiza una alerta existente. Respuesta esperada: 200."
+          }
+        },
+        {
+          "name": "DELETE /api/alerta/:id - Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerta", ":id"]
+            },
+            "description": "Elimina una alerta. Respuesta esperada: 200."
+          }
+        }
+      ]
+    }
+  ]
+}
