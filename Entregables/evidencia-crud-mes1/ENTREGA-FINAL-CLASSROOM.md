@@ -25,7 +25,7 @@ Este documento sigue la estructura de entrega solicitada en Classroom. Las secci
 
 > **Captura 1** — Pantallazo del historial de commits del último mes (ejecutar `git log --all --oneline --decorate --graph` dentro del repositorio).
 
-![Captura 1 — Historial de commits del último mes](captura-commits.png)
+![Captura 1 — Historial de commits del último mes](Evidencias/captura-commits.png)
 
 **Respaldado por el historial textual (2026-08-24 a 2026-09-24, 12 commits):**
 
@@ -89,7 +89,7 @@ Ejemplo del cuerpo de `POST /api/conductor`:
 > **Captura 2** (opcional, recomendado) — Pantallazo de Postman mostrando la colección
 > importada con las peticiones y al menos una respuesta 201.
 
-![Captura 2 — Colección de Postman importada](captura-postman-coleccion.png)
+![Captura 2 — Colección de Postman importada](Evidencias/captura-postman.png)
 
 ---
 
@@ -142,7 +142,7 @@ SELECT * FROM conductor;
 > **Captura 3** — Resultado de `SELECT * FROM conductor;` **antes** de ejecutar el POST
 > (sin la fila `Conductor Evidencia Parte 2`).
 
-![Captura 3 — Tabla conductor antes de insertar](captura-tabla-antes.png)
+![Captura 3 — Tabla conductor antes de insertar](Evidencias/captura-tabla-antes.png)
 
 ### 3.3 Captura 2 — La misma tabla DESPUÉS del registro
 
@@ -156,7 +156,7 @@ SELECT * FROM conductor;
 > la fila `id_conductor = 1` con los valores insertados (prueba de que el dato viajó por
 > la API y quedó persistido en MySQL).
 
-![Captura 4 — Tabla conductor después de insertar](captura-tabla-despues.png)
+![Captura 4 — Tabla conductor después de insertar](Evidencias/captura-tabla-despues.png)
 
 ### 3.4 Comparación API vs base de datos
 
@@ -180,7 +180,10 @@ SELECT * FROM conductor;
 > - 🔐 Login / autenticación (JWT, `POST /api/auth/login`).
 > - 🗄️ CRUDs de las entidades principales (`conductor`, `vehiculo`, `dispositivo`, `evento`, `alerta`) — historia **Terminada** del CRUD singular.
 
-![Captura 5 — Tablero Scrum con historias en Terminado](captura-scrum-board.png)
+![Captura 5 — Tablero Scrum con historias en Terminado](Evidencias/captura-scrum-board.png)
+
+> Si tu captura del tablero tiene otro nombre, guarda el archivo como
+> `Evidencias/captura-scrum-board.png` (o dime cuál `.jpeg` es para renombrarlo).
 
 ---
 
@@ -210,3 +213,18 @@ Opción B — **Sin instalar nada**:
 1. Cargar **`ENTREGA-FINAL-CLASSROOM.pdf`** en la tarea de Classroom.
 2. **Opcional:** agregar el enlace del repositorio
    `https://github.com/bandreswscanga-debug/SmartRoad` en el campo de "Comentarios/Tarea".
+
+---
+
+## Apéndice — Otras capturas del equipo
+
+Todas las capturas originales quedan en la carpeta `Entregables/evidencia-crud-mes1/Evidencias`:
+
+| Archivo | Contenido |
+| ------- | --------- |
+| `captura-commits.png` | Historial de commits |
+| `captura-postman.png` | Petición POST en Postman (201) |
+| `captura-tabla-antes.png` | Tabla `conductor` antes de insertar |
+| `captura-tabla-despues.png` | Tabla `conductor` después de insertar |
+| `oswald-1.jpeg` | Evidencia del equipo (compañero 1) |
+| `daniel-.jpeg` … `daniel-5.jpeg` | Evidencia del equipo (compañero 3) |
