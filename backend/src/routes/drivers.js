@@ -151,8 +151,10 @@ module.exports = (store) => {
   router.delete('/:id', requireAdmin, async (req, res) => {
     const current = await store.getDriver(req.params.id);
     if (!current) return res.status(404).json({ error: 'Conductor no encontrado' });
-    await store.deleteConductor(current.id);
-    res.json({ ok: true });
+    // Borrado total de la persona: conductor + usuario + vehículos asignados
+    // con su telemetría, eventos y alertas.
+    const cascada = await store.deleteConductor(current.id);
+    res.json({ ok: true, eliminados: cascada });
   });
 
   return router;

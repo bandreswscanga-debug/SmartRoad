@@ -102,10 +102,14 @@ export default function Conductores() {
   };
 
   const remove = async (d) => {
-    if (!window.confirm(`¿Eliminar a ${d.nombre}? También se conserva su usuario de acceso.`)) return;
+    if (!window.confirm(`¿Eliminar a ${d.nombre} con TODOS sus datos? Se borran su cuenta de acceso, sus vehículos asignados y su historial (eventos y alertas).`)) return;
     try {
-      await api.deleteDriver(d.id);
-      pushToast('Conductor eliminado', 'success');
+      const res = await api.deleteDriver(d.id);
+      const n = res.eliminados || {};
+      pushToast(
+        `Datos de ${d.nombre} eliminados${n.vehiculos ? ` (${n.vehiculos} vehículo(s), ${n.eventos || 0} evento(s), ${n.alertas || 0} alerta(s))` : ''}`,
+        'success'
+      );
       if (detail?.id === d.id) setDetail(null);
       await load();
     } catch (err) {

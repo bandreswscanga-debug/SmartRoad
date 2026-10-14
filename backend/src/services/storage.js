@@ -98,10 +98,37 @@ class MemoryStore {
   }
 
   async deleteConductor(id) {
-    const i = this.drivers.findIndex((x) => x.id === Number(id));
-    if (i < 0) return false;
-    this.drivers.splice(i, 1);
-    return true;
+    const d = this.drivers.find((x) => x.id === Number(id));
+    if (!d) return { deleted: false };
+    // Vehículos asignados a esta persona y todo su historial.
+    const vehicleIds = this.vehicles.filter((v) => Number(v.conductor_id) === Number(d.id)).map((v) => v.id);
+    const before = {
+      telemetry: this.telemetry.length,
+      events: this.events.length,
+      alerts: this.alerts.length
+    };
+    this.telemetry = this.telemetry.filter((t) => !vehicleIds.includes(Number(t.vehiculo_id)));
+    this.events = this.events.filter((e) => !vehicleIds.includes(Number(e.vehiculo_id)));
+    this.alerts = this.alerts.filter((a) => !vehicleIds.includes(Number(a.vehiculo_id)));
+    this.vehicles = this.vehicles.filter((v) => !vehicleIds.includes(v.id));
+    // Cuenta de acceso vinculada.
+    let usuario = 0;
+    if (d.usuario_id) {
+      const i = this.users.findIndex((u) => u.id === Number(d.usuario_id));
+      if (i >= 0) {
+        this.users.splice(i, 1);
+        usuario = 1;
+      }
+    }
+    this.drivers.splice(this.drivers.indexOf(d), 1);
+    return {
+      deleted: true,
+      usuario,
+      vehiculos: vehicleIds.length,
+      telemetria: before.telemetry - this.telemetry.length,
+      eventos: before.events - this.events.length,
+      alertas: before.alerts - this.alerts.length
+    };
   }
 
   async listVehicles() {
@@ -367,8 +394,22 @@ class MySqlStore {
   }
 
   async deleteConductor(id) {
+    const driver = await this.getDriver(id);
+    if (!driver) return { deleted: false };
+    const vehRows = await this.q('SELECT id FROM vehiculos WHERE conductor_id = ?', [Number(id)]);
+    const vehicleIds = vehRows.map((r) => r.id);
+    // Cuenta de acceso vinculada a la persona.
+    let usuario = 0;
+    if (driver.usuario_id) {
+      await this.q('DELETE FROM usuarios WHERE id = ?', [Number(driver.usuario_id)]);
+      usuario = 1;
+    }
+    // Los eventos/alertas/telemetría caen por ON DELETE CASCADE del vehículo.
+    if (vehicleIds.length) {
+      await this.q(`DELETE FROM vehiculos WHERE id IN (${vehicleIds.map(() => '?').join(',')})`, vehicleIds);
+    }
     await this.q('DELETE FROM conductores WHERE id = ?', [Number(id)]);
-    return true;
+    return { deleted: true, usuario, vehiculos: vehicleIds.length };
   }
 
   vehicleShape(v) {
