@@ -156,6 +156,10 @@ export default function CameraDrowsiness() {
       }
       streamRef.current = stream;
       const video = videoRef.current;
+      if (!video) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error('El reproductor de video no está listo. Cierre y reintente.');
+      }
       video.srcObject = stream;
       await video.play().catch(() => {});
       await getLandmarker();
@@ -306,7 +310,7 @@ export default function CameraDrowsiness() {
         </div>
       )}
 
-      {(phase === 'calibrating' || phase === 'running') && (
+      {(phase === 'starting' || phase === 'calibrating' || phase === 'running') && (
         <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
             <video ref={videoRef} className="aspect-video w-full object-cover" style={{ transform: 'scaleX(-1)' }} muted playsInline />
