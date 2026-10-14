@@ -2,102 +2,34 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { api } from '../api/client';
 import { Camera, Video, VideoOff, Eye, Activity, Volume2, VolumeX, Loader2, ShieldAlert, Radio, ScanSearch } from 'lucide-react';
-import { FaceLandmarker, FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision';
+import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import { earFor, createDrowsinessDetector } from '../utils/drowsiness';
 import { playAlarm, stopAlarm, playChime } from '../utils/alarm';
 
 const MODEL_URL = '/mediapipe/wasm';
 const TASK_URL = '/mediapipe/face_landmarker.task';
-const DETECTOR_URL = '/mediapipe/blaze_face_short_range.tflite';
-const IA_VERSION = 'v7-dos-etapas';
 
 let landmarkerPromise = null;
 function getLandmarker() {
   if (!landmarkerPromise) {
     landmarkerPromise = (async () => {
       const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
-      // Umbrales bajos: prioriza detectar rostros en luz/ángulo difíciles.
-      const opts = (delegate) => ({
-        baseOptions: { modelAssetPath: TASK_URL, delegate },
-        runningMode: 'VIDEO',
-        numFaces: 1,
-        minFaceDetectionConfidence: 0.3,
-        minFacePresenceConfidence: 0.3,
-        minTrackingConfidence: 0.3
-      });
       try {
-        return await FaceLandmarker.createFromOptions(fileset, opts('GPU'));
+        return await FaceLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: TASK_URL, delegate: 'GPU' },
+          runningMode: 'VIDEO',
+          numFaces: 1
+        });
       } catch (_gpu) {
-        return FaceLandmarker.createFromOptions(fileset, opts('CPU'));
+        return FaceLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: TASK_URL, delegate: 'CPU' },
+          runningMode: 'VIDEO',
+          numFaces: 1
+        });
       }
     })();
   }
   return landmarkerPromise;
-}
-
-// Etapa 1: detector de rostros liviano y tolerante (BlazeFace).
-// Etapa 2: puntos de ojos sobre el recorte ampliado (mucho más fiable
-// con rostros pequeños o luz difícil que el modelo directo al cuadro).
-let detectorPromise = null;
-function getDetector() {
-  if (!detectorPromise) {
-    detectorPromise = (async () => {
-      const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
-      const opts = (delegate) => ({
-        baseOptions: { modelAssetPath: DETECTOR_URL, delegate },
-        runningMode: 'VIDEO',
-        minDetectionConfidence: 0.2
-      });
-      try {
-        return await FaceDetector.createFromOptions(fileset, opts('GPU'));
-      } catch (_gpu) {
-        return FaceDetector.createFromOptions(fileset, opts('CPU'));
-      }
-    })();
-  }
-  return detectorPromise;
-}
-
-let imageLandmarkerPromise = null;
-function getImageLandmarker() {
-  if (!imageLandmarkerPromise) {
-    imageLandmarkerPromise = (async () => {
-      const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
-      const opts = (delegate) => ({
-        baseOptions: { modelAssetPath: TASK_URL, delegate },
-        runningMode: 'IMAGE',
-        numFaces: 1,
-        minFaceDetectionConfidence: 0.3,
-        minFacePresenceConfidence: 0.3,
-        minTrackingConfidence: 0.3
-      });
-      try {
-        return await FaceLandmarker.createFromOptions(fileset, opts('GPU'));
-      } catch (_gpu) {
-        return FaceLandmarker.createFromOptions(fileset, opts('CPU'));
-      }
-    })();
-  }
-  return imageLandmarkerPromise;
-}
-
-// Recorta el rostro (cuadrado ampliado) para la etapa 2.
-function cropFace(video, box, cropCanvas, CROP = 256) {
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  if (!vw || !vh || !box) return null;
-  const cx = box.originX + box.width / 2;
-  const cy = box.originY + box.height / 2;
-  const side = Math.min(vw, vh, Math.max(box.width, box.height) * 1.6);
-  if (side < 24) return null;
-  let sx = Math.round(cx - side / 2);
-  let sy = Math.round(cy - side / 2);
-  sx = Math.max(0, Math.min(vw - side, sx));
-  sy = Math.max(0, Math.min(vh - side, sy));
-  cropCanvas.width = CROP;
-  cropCanvas.height = CROP;
-  cropCanvas.getContext('2d').drawImage(video, sx, sy, side, side, 0, 0, CROP, CROP);
-  return { sx, sy, side, size: CROP };
 }
 
 const LEVEL_STYLE = {
@@ -121,8 +53,6 @@ export default function CameraDrowsiness() {
   const [level, setLevel] = useState('NORMAL');
   const [metrics, setMetrics] = useState({ ear: null, perclos: 0, streak: 0, threshold: null, calFrame: 0, face: false });
   const [alarmOn, setAlarmOn] = useState(false);
-  const [serverIa, setServerIa] = useState({ busy: false, result: null });
-  const [etapa, setEtapa] = useState('En espera');
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -131,19 +61,10 @@ export default function CameraDrowsiness() {
   const phaseRef = useRef('idle');
   const detectorRef = useRef(null);
   const calibEarsRef = useRef([]);
-  const calibStartRef = useRef(0);
-  const CALIB_TIMEOUT_MS = 30000;
-  const CALIB_FRAMES = 30;
-  const CALIB_MIN_EAR = 0.02; // solo descarta basura (cero/nulo), no ojos reales
   const notifyLockRef = useRef({ CRITICO: 0, MEDIO: 0 });
   const alarmStateRef = useRef({ on: false });
   const levelRef = useRef('NORMAL');
   const mountedRef = useRef(true);
-  const lightCanvasRef = useRef(null);
-  const cropCanvasRef = useRef(null);
-  const fullCanvasRef = useRef(null);
-  const fullScaleRef = useRef(1);
-  const processedRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -165,73 +86,6 @@ export default function CameraDrowsiness() {
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-  }
-
-  // Cierra la calibración solo con muestra suficiente y válida.
-  function finishCalibration() {
-    const detector = detectorRef.current;
-    if (!detector) return;
-    detector.train(calibEarsRef.current);
-    setPhase('running');
-    setEtapa('Activa');
-    setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: CALIB_FRAMES }));
-    pushToast('IA calibrada: umbral personal de ojos cerrados listo', 'success');
-  }
-
-  // Sin rostro estable en el tiempo límite: fallo explícito con reintento,
-  // nunca un umbral falso ni quedarse colgado.
-  function failCalibration() {
-    stopEverything();
-    setEtapa('Falló la calibración');
-    setError('No se detectó un rostro estable para calibrar. Verifique buena luz, mire al frente a ~50 cm, centre el rostro en el cuadro y que ninguna otra app use la cámara. Luego pulse Iniciar cámara.');
-    setPhase('error');
-  }
-
-  function recalibrate() {
-    if (phaseRef.current !== 'calibrating') return;
-    calibEarsRef.current = [];
-    calibStartRef.current = Date.now();
-    processedRef.current = 0;
-    setMetrics((m) => ({ ...m, calFrame: 0 }));
-    pushToast('Calibración reiniciada: mire al frente con los ojos abiertos', 'info');
-  }
-
-  // IA por servidor: captura el cuadro actual y lo analiza Groq (visión).
-  // No usa el modelo local: funciona aunque la calibración local falle.
-  function captureFrame() {
-    const video = videoRef.current;
-    if (!video || !video.videoWidth) {
-      pushToast('Primero inicie la cámara', 'warning');
-      return null;
-    }
-    const tmp = document.createElement('canvas');
-    tmp.width = video.videoWidth;
-    tmp.height = video.videoHeight;
-    tmp.getContext('2d').drawImage(video, 0, 0);
-    return tmp;
-  }
-
-  function downloadFrame() {
-    const tmp = captureFrame();
-    if (!tmp) return;
-    const a = document.createElement('a');
-    a.href = tmp.toDataURL('image/jpeg', 0.85);
-    a.download = `smartroad-camara-${tmp.width}x${tmp.height}.jpg`;
-    a.click();
-    pushToast(`Foto guardada (${tmp.width}x${tmp.height}). Ábrala: ¿se ve completa o con franjas negras?`, 'info');
-  }
-  async function analyzeWithServer() {
-    const tmp = captureFrame();
-    if (!tmp) return;
-    setServerIa({ busy: true, result: null });
-    try {
-      const dataUrl = tmp.toDataURL('image/jpeg', 0.7);
-      const data = await api.iaAnalizarImagen(dataUrl, '¿El conductor muestra signos de somnolencia? Responda nivel y acción.');
-      setServerIa({ busy: false, result: data.analisis });
-    } catch (err) {
-      setServerIa({ busy: false, result: null });
-      pushToast(err.message, 'critical');
-    }
   }
 
   async function notify(nivel) {
@@ -289,87 +143,34 @@ export default function CameraDrowsiness() {
     }
     setPhase('starting');
     setError(null);
-    setEtapa('Pidiendo permiso a la cámara…');
     setLevel('NORMAL');
     levelRef.current = 'NORMAL';
-    // Si el permiso queda sin responder, no colgarse: se informa a los 30 s.
-    let permissionStuck = false;
-    const permissionTimer = setTimeout(() => {
-      permissionStuck = true;
-      if (phaseRef.current === 'starting') {
-        setEtapa('Sin respuesta de la cámara');
-        setError('La cámara no responde: acepte el permiso en el navegador o cierre otras apps que la usen, y reintente.');
-        setPhase('error');
-      }
-    }, 30000);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        // 320x240: suficiente para EAR y mucho más rápido en CPU.
-        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false
       });
-      clearTimeout(permissionTimer);
-      if (permissionStuck) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
       if (!mountedRef.current) {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
       streamRef.current = stream;
       const video = videoRef.current;
-      if (!video) {
-        stream.getTracks().forEach((t) => t.stop());
-        throw new Error('El reproductor de video no está listo. Cierre y reintente.');
-      }
       video.srcObject = stream;
-      video.muted = true; // propiedad real: el atributo React no siempre silencia
       await video.play().catch(() => {});
-      if (video.paused) {
-        stream.getTracks().forEach((t) => t.stop());
-        throw new Error('El navegador bloqueó la reproducción del video. Pulse Iniciar cámara de nuevo.');
-      }
-      if (!video.videoWidth) {
-        await new Promise((resolve, reject) => {
-          const to = setTimeout(() => reject(new Error('timeout')), 5000);
-          video.onloadeddata = () => {
-            clearTimeout(to);
-            resolve();
-          };
-        }).catch(() => {});
-      }
-      if (!video.videoWidth) {
-        stream.getTracks().forEach((t) => t.stop());
-        throw new Error('La cámara no entrega imagen (otro programa podría estar usándola). Ciérrela y reintente.');
-      }
-      // La carga del modelo (3.7 MB + wasm) no debe colgarse sin aviso.
-      setEtapa('Cámara lista, cargando modelo IA…');
-      setMetrics((m) => ({ ...m, modelo: 'cargando' }));
-      await Promise.race([
-        getLandmarker(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Modelo IA: tiempo de carga agotado, revise su conexión.')), 60000)
-        )
-      ]);
-      setMetrics((m) => ({ ...m, modelo: 'ok' }));
+      await getLandmarker();
       if (!mountedRef.current) return;
 
       detectorRef.current = createDrowsinessDetector();
       calibEarsRef.current = [];
-      calibStartRef.current = Date.now();
-      processedRef.current = 0;
       alarmStateRef.current = { on: false };
       setAlarmOn(false);
-      setEtapa('Modelo listo, calibrando con su mirada…');
       setPhase('calibrating');
       pushToast('Modo de prueba: calibrando la IA con sus ojos (mire al frente, sin pestañear), luego mostrando el video', 'info');
       runLoop();
     } catch (err) {
-      clearTimeout(permissionTimer);
       if (!mountedRef.current) return;
       stopEverything();
-      setEtapa('Error al iniciar');
       const msg =
         err?.name === 'NotAllowedError'
           ? 'Permiso de cámara denegado. Habilítelo en el navegador y reintente.'
@@ -385,7 +186,6 @@ export default function CameraDrowsiness() {
     stopEverything();
     detectorRef.current = null;
     setPhase('idle');
-    setEtapa('En espera');
     setLevel('NORMAL');
     levelRef.current = 'NORMAL';
     setAlarmOn(false);
@@ -399,92 +199,23 @@ export default function CameraDrowsiness() {
       rafRef.current = requestAnimationFrame(runLoop);
       return;
     }
-    // El canvas debe coincidir con el video real o el overlay sale descuadrado.
-    if (canvas && (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-    }
-    setMetrics((m) => ({ ...m, video: `${video.videoWidth}x${video.videoHeight}` }));
     const g = canvas.getContext('2d');
     let lastVideoTime = -1;
-    let frozenFrames = 0;
 
     const tick = async () => {
       const ph = phaseRef.current;
       if (!mountedRef.current || (ph !== 'calibrating' && ph !== 'running')) return;
       const detector = detectorRef.current;
       if (video.currentTime !== lastVideoTime) {
-        frozenFrames = 0;
-        setMetrics((m) => ({ ...m, frozen: false }));
         lastVideoTime = video.currentTime;
         try {
-          const faceDetector = await getDetector();
-          const t0 = performance.now();
-          const dres = faceDetector.detectForVideo(video, performance.now());
-          const box = dres.detections && dres.detections[0] && dres.detections[0].boundingBox;
-          let lm = null;
-          let crop = null;
-          if (box) {
-            if (!cropCanvasRef.current) cropCanvasRef.current = document.createElement('canvas');
-            crop = cropFace(video, box, cropCanvasRef.current);
-            if (crop) {
-              const ilm = await getImageLandmarker();
-              const lres = ilm.detect(cropCanvasRef.current);
-              lm = lres.faceLandmarks && lres.faceLandmarks[0];
-            }
-          }
-          if (!lm) {
-            // Respaldo: ojos y boca directos al cuadro completo (sin pasar por el rostro).
-            const ilm = await getImageLandmarker();
-            if (!fullCanvasRef.current) fullCanvasRef.current = document.createElement('canvas');
-            const fc = fullCanvasRef.current;
-            const scale = Math.min(1, 480 / Math.max(video.videoWidth, video.videoHeight));
-            fc.width = Math.round(video.videoWidth * scale);
-            fc.height = Math.round(video.videoHeight * scale);
-            fc.getContext('2d').drawImage(video, 0, 0, fc.width, fc.height);
-            const fres = ilm.detect(fc);
-            lm = fres.faceLandmarks && fres.faceLandmarks[0];
-            if (lm) {
-              crop = null; // puntos en coords del cuadro: paint los mapea directo
-              fullScaleRef.current = scale;
-            }
-          }
-          const inferMs = Math.round(performance.now() - t0);
-          paint(g, video, box, lm, crop);
-          processedRef.current += 1;
-          setMetrics((m) => {
-            const frames = (m.frames || 0) + 1;
-            // Medidor de luz cada 30 cuadros: si está oscuro, la detección falla.
-            let luz = m.luz;
-            if (frames % 30 === 0) {
-              try {
-                if (!lightCanvasRef.current) {
-                  lightCanvasRef.current = document.createElement('canvas');
-                  lightCanvasRef.current.width = 32;
-                  lightCanvasRef.current.height = 32;
-                }
-                const lc = lightCanvasRef.current.getContext('2d', { willReadFrequently: true });
-                lc.drawImage(video, 0, 0, 32, 32);
-                const px = lc.getImageData(0, 0, 32, 32).data;
-                let sum = 0;
-                for (let i = 0; i < px.length; i += 4) sum += (px[i] + px[i + 1] + px[i + 2]) / 3;
-                luz = Math.round(sum / (px.length / 4));
-              } catch (_l) {
-                /* sin medidor */
-              }
-            }
-            return { ...m, frames, detectError: null, inferMs, luz };
-          });
-          const hasFace = Boolean(box);
+          const landmarker = await getLandmarker();
+          const result = landmarker.detectForVideo(video, performance.now());
+          paint(g, result);
+          const lm = result.faceLandmarks && result.faceLandmarks[0];
           if (!lm || !detector) {
             if (detector) detector.push(null);
-            setMetrics((m) => ({ ...m, face: hasFace }));
-            // Sin rostro: si ni siquiera procesa cuadros en 30 s, algo está roto;
-            // si procesa pero no detecta, se da hasta 60 s (CPU lentas).
-            const limit = processedRef.current > 0 ? 60000 : CALIB_TIMEOUT_MS;
-            if (ph === 'calibrating' && Date.now() - calibStartRef.current > limit) {
-              failCalibration();
-            }
+            setMetrics((m) => ({ ...m, face: Boolean(lm) }));
           } else {
             const left = earFor(lm, 'left');
             const right = earFor(lm, 'right');
@@ -493,17 +224,13 @@ export default function CameraDrowsiness() {
               detector.push(null);
               setMetrics((m) => ({ ...m, face: true }));
             } else if (ph === 'calibrating') {
-              // Solo cuadros válidos con ojos medibles; parpadeos atípicos no cuentan.
-              if (ear != null && ear >= CALIB_MIN_EAR) {
-                calibEarsRef.current.push(ear);
-                setMetrics((m) => ({ ...m, ear, calFrame: calibEarsRef.current.length, face: true }));
-              } else {
-                setMetrics((m) => ({ ...m, face: true }));
-              }
-              if (calibEarsRef.current.length >= CALIB_FRAMES) {
-                finishCalibration();
-              } else if (Date.now() - calibStartRef.current > CALIB_TIMEOUT_MS) {
-                failCalibration();
+              calibEarsRef.current.push(ear);
+              setMetrics((m) => ({ ...m, ear, calFrame: calibEarsRef.current.length, face: true }));
+              if (calibEarsRef.current.length >= 60) {
+                detector.train(calibEarsRef.current);
+                setPhase('running');
+                setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: 60 }));
+                pushToast('IA calibrada: umbral personal de ojos cerrados listo', 'success');
               }
             } else {
               const res = detector.push(ear);
@@ -513,13 +240,6 @@ export default function CameraDrowsiness() {
           }
         } catch (_e) {
           /* frame fallido: se continúa con el siguiente */
-          setMetrics((m) => ({ ...m, detectError: String(_e?.message || _e).slice(0, 120) }));
-        }
-      } else {
-        // El tiempo del video no avanza: imagen congelada, los cuadros no sirven.
-        frozenFrames += 1;
-        if (frozenFrames > 300) {
-          setMetrics((m) => ({ ...m, frozen: true }));
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -527,41 +247,22 @@ export default function CameraDrowsiness() {
     rafRef.current = requestAnimationFrame(tick);
   }
 
-  function paint(g, video, box, lm, crop) {
+  function paint(g, result) {
     const w = g.canvas.width;
     const h = g.canvas.height;
-    const sx = w / (video.videoWidth || w);
-    const sy = h / (video.videoHeight || h);
     g.clearRect(0, 0, w, h);
-    // Marco del rostro (etapa 1: verde con puntos, ámbar sin puntos).
-    if (box) {
-      g.lineWidth = 2;
-      g.strokeStyle = lm ? '#22c55e' : '#f59e0b';
-      g.strokeRect(box.originX * sx, box.originY * sy, box.width * sx, box.height * sy);
-    }
-    if (!lm) return;
-    // Puntos de ojos del recorte mapeados al video (etapa 2),
-    // o del cuadro completo escalado (respaldo).
-    const map = (p) => {
-      if (crop) {
-        return { x: (crop.sx + p.x * crop.size) * sx, y: (crop.sy + p.y * crop.size) * sy };
-      }
-      const s = fullScaleRef.current || 1;
-      const fc = fullCanvasRef.current;
-      const fw = (fc ? fc.width : video.videoWidth) / s;
-      const fh = (fc ? fc.height : video.videoHeight) / s;
-      return { x: p.x * fw * sx, y: p.y * fh * sy };
-    };
+    if (!result.faceLandmarks || !result.faceLandmarks[0]) return;
+    const lm = result.faceLandmarks[0];
     const sets = { left: [362, 385, 387, 263, 373, 380], right: [33, 160, 158, 133, 153, 144] };
     g.lineWidth = 2;
     for (const key of ['left', 'right']) {
-      const pts = sets[key].map((i) => lm[i]).filter(Boolean).map(map);
-      if (pts.length < 6) continue;
+      const pts = sets[key].map((i) => lm[i]);
+      if (!pts.every(Boolean)) continue;
       g.beginPath();
-      g.moveTo(pts[0].x, pts[0].y);
+      g.moveTo(pts[0].x * w, pts[0].y * h);
       if (key === 'left') g.strokeStyle = '#22d3ee';
       else g.strokeStyle = '#f472b6';
-      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x * w, pts[i].y * h);
       g.stroke();
     }
   }
@@ -575,7 +276,7 @@ export default function CameraDrowsiness() {
           </span>
           <div>
             <p className="text-sm font-extrabold">Modo de prueba · Detección de somnolencia (IA)</p>
-            <p className="text-[11px] text-muted">Cámara del panel · FaceMesh (478 puntos) + EAR/PERCLOS con calibración personal · {IA_VERSION}</p>
+            <p className="text-[11px] text-muted">Cámara del panel · FaceMesh (478 puntos) + EAR/PERCLOS con calibración personal</p>
           </div>
         </div>
         {phase === 'idle' || phase === 'error' || phase === 'starting' ? (
@@ -592,10 +293,9 @@ export default function CameraDrowsiness() {
         )}
       </div>
 
-      {phase !== 'idle' && (
+      {phase === 'starting' && (
         <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3.5 py-3 text-xs text-muted">
-          {(phase === 'starting' || phase === 'calibrating') && <Loader2 size={15} className="animate-spin text-info" />}
-          <span><b>Estado:</b> {etapa}</span>
+          <Loader2 size={15} className="animate-spin text-info" /> Solicitando cámara y cargando la IA de visión…
         </div>
       )}
 
@@ -606,24 +306,11 @@ export default function CameraDrowsiness() {
         </div>
       )}
 
-      {(phase === 'idle' || phase === 'error') ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-black" style={{ display: 'none' }} aria-hidden="true">
-          <video ref={videoRef} className="aspect-video w-full object-cover" style={{ transform: 'scaleX(-1)' }} muted playsInline />
-          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ transform: 'scaleX(-1)' }} />
-        </div>
-      ) : (
+      {(phase === 'calibrating' || phase === 'running') && (
         <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
             <video ref={videoRef} className="aspect-video w-full object-cover" style={{ transform: 'scaleX(-1)' }} muted playsInline />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ transform: 'scaleX(-1)' }} />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="h-[72%] w-[46%] rounded-[50%] border-2 border-dashed border-white/40" />
-            </div>
-            {metrics.luz != null && metrics.luz < 45 && (
-              <div className="absolute inset-x-3 top-3 rounded-lg border border-warning/50 bg-black/70 px-3 py-2 text-center text-[11px] font-bold text-warning">
-                Poca luz ({metrics.luz}): encienda una luz frontal para que la IA lo detecte.
-              </div>
-            )}
             <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
               <span className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${LEVEL_STYLE[level].pill}`}>
                 {LEVEL_STYLE[level].label}
@@ -635,24 +322,12 @@ export default function CameraDrowsiness() {
               )}
             </div>
             {phase === 'calibrating' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/30 p-4 text-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55">
                 <Loader2 size={26} className="animate-spin text-warning" />
                 <p className="text-xs font-bold uppercase tracking-widest text-warning">Calibrando la IA · mirar al frente con los ojos abiertos</p>
                 <p className="text-[10px] text-muted">
-                  {Math.min(CALIB_FRAMES, metrics.calFrame)}/{CALIB_FRAMES} cuadros{metrics.ear != null ? ` · EAR ${metrics.ear.toFixed(2)}` : ' · buscando rostro…'}
+                  {Math.min(60, metrics.calFrame)}/60 cuadros{metrics.ear != null ? ` · EAR ${metrics.ear.toFixed(2)}` : ' · buscando rostro…'}
                 </p>
-                {metrics.frozen && (
-                  <p className="rounded-lg border border-danger/50 bg-danger/15 px-3 py-2 text-[11px] font-bold text-danger-bright">
-                    Imagen congelada: pulse Detener e Iniciar de nuevo.
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={recalibrate}
-                  className="mt-1 rounded-lg border border-warning/50 bg-black/60 px-3 py-1.5 text-[11px] font-bold text-warning hover:bg-warning/15"
-                >
-                  Reiniciar calibración
-                </button>
               </div>
             )}
             {phase === 'running' && !metrics.face && (level === 'NORMAL' || level === 'BAJO') && (
@@ -680,31 +355,6 @@ export default function CameraDrowsiness() {
             <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-[10px] leading-relaxed text-faint">
               La IA procesa su rostro dentro del navegador; el video nunca sale de este equipo. Al superar el umbral, se registra un evento/alerta en el panel y suena la alarma.
               Si no hay alguien registrado (0 rostros), no se dispara alarma.
-            </div>
-
-            <div className="rounded-lg border border-border-soft bg-surface px-3.5 py-2.5 font-mono text-[10px] leading-relaxed text-faint">
-              diag · video {metrics.video || '—'} · modelo {metrics.modelo || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}{metrics.inferMs != null ? ` · IA ${metrics.inferMs} ms` : ''}
-              {metrics.detectError ? ` · error: ${metrics.detectError}` : ''}
-            </div>
-
-            <div className="rounded-xl border border-info/30 bg-info/5 p-3.5">
-              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-widest text-info">
-                IA por servidor (Groq visión)
-              </p>
-              <button className="btn-primary w-full" disabled={serverIa.busy} onClick={analyzeWithServer}>
-                {serverIa.busy ? 'Analizando foto…' : 'Analizar foto actual con Groq'}
-              </button>
-              <button className="btn-ghost w-full" onClick={downloadFrame}>
-                Guardar foto (ver lo que ve la IA)
-              </button>
-              {serverIa.result && (
-                <p className="mt-2 rounded-lg border border-border-soft bg-surface-2 px-3 py-2 text-xs leading-relaxed">
-                  {serverIa.result}
-                </p>
-              )}
-              <p className="mt-1.5 text-[10px] text-faint">
-                No usa el modelo local. Requiere GROQ_API_KEY en el backend.
-              </p>
             </div>
 
             {alarmOn && (
