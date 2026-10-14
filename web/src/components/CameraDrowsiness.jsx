@@ -129,18 +129,33 @@ export default function CameraDrowsiness() {
 
   // IA por servidor: captura el cuadro actual y lo analiza Groq (visión).
   // No usa el modelo local: funciona aunque la calibración local falle.
-  async function analyzeWithServer() {
+  function captureFrame() {
     const video = videoRef.current;
     if (!video || !video.videoWidth) {
       pushToast('Primero inicie la cámara', 'warning');
-      return;
+      return null;
     }
+    const tmp = document.createElement('canvas');
+    tmp.width = video.videoWidth;
+    tmp.height = video.videoHeight;
+    tmp.getContext('2d').drawImage(video, 0, 0);
+    return tmp;
+  }
+
+  function downloadFrame() {
+    const tmp = captureFrame();
+    if (!tmp) return;
+    const a = document.createElement('a');
+    a.href = tmp.toDataURL('image/jpeg', 0.85);
+    a.download = `smartroad-camara-${tmp.width}x${tmp.height}.jpg`;
+    a.click();
+    pushToast(`Foto guardada (${tmp.width}x${tmp.height}). Ábrala: ¿se ve completa o con franjas negras?`, 'info');
+  }
+  async function analyzeWithServer() {
+    const tmp = captureFrame();
+    if (!tmp) return;
     setServerIa({ busy: true, result: null });
     try {
-      const tmp = document.createElement('canvas');
-      tmp.width = video.videoWidth;
-      tmp.height = video.videoHeight;
-      tmp.getContext('2d').drawImage(video, 0, 0);
       const dataUrl = tmp.toDataURL('image/jpeg', 0.7);
       const data = await api.iaAnalizarImagen(dataUrl, '¿El conductor muestra signos de somnolencia? Responda nivel y acción.');
       setServerIa({ busy: false, result: data.analisis });
@@ -562,6 +577,9 @@ export default function CameraDrowsiness() {
               </p>
               <button className="btn-primary w-full" disabled={serverIa.busy} onClick={analyzeWithServer}>
                 {serverIa.busy ? 'Analizando foto…' : 'Analizar foto actual con Groq'}
+              </button>
+              <button className="btn-ghost w-full" onClick={downloadFrame}>
+                Guardar foto (ver lo que ve la IA)
               </button>
               {serverIa.result && (
                 <p className="mt-2 rounded-lg border border-border-soft bg-surface-2 px-3 py-2 text-xs leading-relaxed">
