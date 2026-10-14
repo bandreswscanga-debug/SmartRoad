@@ -63,7 +63,7 @@ export default function CameraDrowsiness() {
   const calibEarsRef = useRef([]);
   const calibStartRef = useRef(0);
   const CALIB_TIMEOUT_MS = 30000;
-  const CALIB_FRAMES = 60;
+  const CALIB_FRAMES = 30;
   const CALIB_MIN_EAR = 0.08; // descarta cuadros inválidos (ojos no medibles)
   const notifyLockRef = useRef({ CRITICO: 0, MEDIO: 0 });
   const alarmStateRef = useRef({ on: false });
@@ -186,7 +186,8 @@ export default function CameraDrowsiness() {
     }, 30000);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        // 320x240: suficiente para EAR y mucho más rápido en CPU.
+        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
         audio: false
       });
       clearTimeout(permissionTimer);
@@ -293,9 +294,11 @@ export default function CameraDrowsiness() {
         lastVideoTime = video.currentTime;
         try {
           const landmarker = await getLandmarker();
+          const t0 = performance.now();
           const result = landmarker.detectForVideo(video, performance.now());
+          const inferMs = Math.round(performance.now() - t0);
           paint(g, result);
-          setMetrics((m) => ({ ...m, frames: (m.frames || 0) + 1, detectError: null }));
+          setMetrics((m) => ({ ...m, frames: (m.frames || 0) + 1, detectError: null, inferMs }));
           const lm = result.faceLandmarks && result.faceLandmarks[0];
           if (!lm || !detector) {
             if (detector) detector.push(null);
@@ -425,7 +428,7 @@ export default function CameraDrowsiness() {
                 <Loader2 size={26} className="animate-spin text-warning" />
                 <p className="text-xs font-bold uppercase tracking-widest text-warning">Calibrando la IA · mirar al frente con los ojos abiertos</p>
                 <p className="text-[10px] text-muted">
-                  {Math.min(60, metrics.calFrame)}/60 cuadros{metrics.ear != null ? ` · EAR ${metrics.ear.toFixed(2)}` : ' · buscando rostro…'}
+                  {Math.min(CALIB_FRAMES, metrics.calFrame)}/{CALIB_FRAMES} cuadros{metrics.ear != null ? ` · EAR ${metrics.ear.toFixed(2)}` : ' · buscando rostro…'}
                 </p>
                 {metrics.frozen && (
                   <p className="rounded-lg border border-danger/50 bg-danger/15 px-3 py-2 text-[11px] font-bold text-danger-bright">
@@ -469,7 +472,7 @@ export default function CameraDrowsiness() {
             </div>
 
             <div className="rounded-lg border border-border-soft bg-surface px-3.5 py-2.5 font-mono text-[10px] leading-relaxed text-faint">
-              diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}
+              diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}{metrics.inferMs != null ? ` · IA ${metrics.inferMs} ms` : ''}
               {metrics.detectError ? ` · error: ${metrics.detectError}` : ''}
             </div>
 
