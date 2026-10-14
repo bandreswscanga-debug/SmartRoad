@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Monitoreo from './pages/Monitoreo';
+import Camara from './pages/Camara';
 import Historial from './pages/Historial';
 import Reportes from './pages/Reportes';
 import Conductores from './pages/Conductores';
@@ -35,6 +36,7 @@ export default function App() {
               <Routes>
                 <Route index element={<Dashboard />} />
                 <Route path="monitoreo" element={<Monitoreo />} />
+                <Route path="camara" element={<Camara />} />
                 <Route path="historial" element={<Historial />} />
                 <Route path="reportes" element={<Reportes />} />
                 <Route path="conductores" element={<Conductores />} />

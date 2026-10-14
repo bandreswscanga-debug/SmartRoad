@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { api } from '../api/client';
 import { Truck, BatteryMedium, Satellite, Cpu, Zap, Navigation, Camera, Radio, Wifi, WifiOff } from 'lucide-react';
 import { RiskBadge, Semaphore, Meter, Spinner } from '../components/ui';
 import LiveCamera from '../components/LiveCamera';
-import CameraDrowsiness from '../components/CameraDrowsiness';
 import { timeAgo, fmtClock } from '../utils/format';
 
 export default function Monitoreo() {
@@ -43,7 +43,21 @@ export default function Monitoreo() {
   return (
     <div className="grid gap-6 xl:grid-cols-3">
       <div className="space-y-5 xl:col-span-2">
-        <CameraDrowsiness />
+        <Link
+          to="/camara"
+          className="card flex items-center gap-4 p-5 transition-all hover:border-info/50"
+        >
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-info/40 bg-info/10 text-info">
+            <Camera size={22} />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-extrabold">Prueba de cámara IA</p>
+            <p className="text-xs text-muted">
+              La detección de somnolencia por cámara ahora vive en su propia sección del menú.
+            </p>
+          </div>
+          <span className="text-xs font-bold text-info">Abrir cámara →</span>
+        </Link>
 
         <div className="flex flex-wrap items-center gap-2">
           <span
