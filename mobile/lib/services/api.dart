@@ -7,20 +7,8 @@ class ApiClient {
   ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? defaultBase;
 
   static const defaultBase = 'http://127.0.0.1:4000';
-  static const prefsBaseKey = 'srs_base';
   String baseUrl;
   String? token;
-
-  static Future<String> savedBase() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = (prefs.getString(prefsBaseKey) ?? '').trim();
-    return saved.isEmpty ? defaultBase : saved;
-  }
-
-  static Future<void> saveBase(String base) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(prefsBaseKey, base.trim());
-  }
 
   Uri _u(String path) => Uri.parse('$baseUrl$path');
 
@@ -30,17 +18,12 @@ class ApiClient {
       };
 
   Future<void> _ensureToken() async {
-    if ((token == null || token!.isEmpty) || _baseLoaded != true) {
+    if (token == null || token!.isEmpty) {
       final prefs = await SharedPreferences.getInstance();
-      token ??= prefs.getString('srs_token');
+      token = prefs.getString('srs_token');
       if (token != null && token!.isEmpty) token = null;
-      final saved = (prefs.getString(prefsBaseKey) ?? '').trim();
-      if (saved.isNotEmpty) baseUrl = saved;
-      _baseLoaded = true;
     }
   }
-
-  bool? _baseLoaded;
 
   Future<dynamic> _send(String method, String path, [Object? body]) async {
     await _ensureToken();
@@ -56,7 +39,7 @@ class ApiClient {
           _ => throw ApiException('Método no soportado: $method'),
         };
       } catch (err) {
-        throw ApiException('Sin conexión con $baseUrl [$err]. Revise red/USB y el campo Servidor.');
+        throw ApiException('Sin conexión con $baseUrl [$err]. Revise el cable USB o la red.');
       }
     })();
     final data = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;

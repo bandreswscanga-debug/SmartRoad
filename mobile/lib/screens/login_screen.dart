@@ -16,24 +16,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _pass = TextEditingController();
-  final TextEditingController _server = TextEditingController();
-  ApiClient _api = ApiClient();
+  final ApiClient _api = ApiClient();
   bool _busy = false;
   bool _showPass = false;
   String? _error;
   bool _mustChange = false;
-
-  @override
-  void initState() {
-    super.initState();
-    ApiClient.savedBase().then((base) {
-      if (!mounted) return;
-      setState(() {
-        _server.text = base;
-        _api = ApiClient(baseUrl: base);
-      });
-    });
-  }
 
   Future<void> _submit() async {
     setState(() {
@@ -42,9 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _mustChange = false;
     });
     try {
-      final base = _server.text.trim().isEmpty ? ApiClient.defaultBase : _server.text.trim();
-      await ApiClient.saveBase(base);
-      _api = ApiClient(baseUrl: base);
       final data = await _api.login(_email.text.trim(), _pass.text);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('srs_token', data['token'] as String);
@@ -66,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _email.dispose();
     _pass.dispose();
-    _server.dispose();
     super.dispose();
   }
 
@@ -136,15 +119,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: AppColors.faint,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _server,
-              keyboardType: TextInputType.url,
-              decoration: const InputDecoration(
-                labelText: 'Servidor (IP del PC + :4000)',
-                prefixIcon: Icon(Icons.dns_outlined, color: AppColors.faint),
               ),
             ),
             if (_mustChange) ...[
