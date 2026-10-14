@@ -52,6 +52,42 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> profile() async {
+    final data = await _send('GET', '/api/profile');
+    return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> body) async {
+    final data = await _send('PUT', '/api/profile', body);
+    return data as Map<String, dynamic>;
+  }
+
+  Future<void> changePassword({required String actual, required String nueva}) async {
+    await _send('POST', '/api/auth/change-password', {'actual': actual, 'nueva': nueva});
+  }
+
+  Future<Map<String, dynamic>> summary() async {
+    final data = await _send('GET', '/api/dashboard/summary');
+    return data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> recentAlerts() async {
+    final data = await _send('GET', '/api/dashboard/recent-alerts');
+    return data['alerts'] as List<dynamic>? ?? [];
+  }
+
+  Future<List<dynamic>> activeAlerts() async {
+    final data = await _send('GET', '/api/alerts/active');
+    return data['alerts'] as List<dynamic>? ?? [];
+  }
+
+  Future<void> testDrowsiness({required String nivel, String? descripcion}) async {
+    await _send('POST', '/api/telemetry/drowsiness-test', {
+      'nivel': nivel,
+      if (descripcion != null) 'descripcion': descripcion,
+    });
+  }
+
   Future<List<dynamic>> vehicles() async {
     final data = await _send('GET', '/api/vehicles');
     return data['vehicles'] as List<dynamic>? ?? [];

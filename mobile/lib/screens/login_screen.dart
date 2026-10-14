@@ -14,16 +14,18 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _email = TextEditingController(text: 'bandreswscanga@hgmail.com');
-  final TextEditingController _pass = TextEditingController(text: '5304566767');
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _pass = TextEditingController();
   final ApiClient _api = ApiClient();
   bool _busy = false;
   String? _error;
+  bool _mustChange = false;
 
   Future<void> _submit() async {
     setState(() {
       _busy = true;
       _error = null;
+      _mustChange = false;
     });
     try {
       final data = await _api.login(_email.text.trim(), _pass.text);
@@ -31,6 +33,9 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString('srs_token', data['token'] as String);
       if (data['user'] is Map) {
         await prefs.setString('srs_user', jsonEncode(data['user']));
+      }
+      if (data['must_change_password'] == true) {
+        if (mounted) setState(() => _mustChange = true);
       }
       if (mounted) widget.onLogin();
     } catch (err) {
@@ -103,10 +108,33 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _pass,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Contraseña',
+                labelText: 'Contraseña (primera vez: tu cédula)',
                 prefixIcon: Icon(Icons.lock_outline, color: AppColors.faint),
               ),
             ),
+            if (_mustChange) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.danger.withValues(alpha: 0.5)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: AppColors.dangerBright, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Debes cambiar tu contraseña en tu primer ingreso (Perfil → Cambiar contraseña).',
+                        style: TextStyle(color: AppColors.dangerBright, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 14),
               Container(
@@ -134,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Acceso admin: bandreswscanga@hgmail.com',
+              'Acceso conductor: tu correo y tu cédula como clave inicial',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.faint, fontSize: 11),
             ),
