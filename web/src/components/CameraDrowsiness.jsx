@@ -61,6 +61,9 @@ export default function CameraDrowsiness() {
   const phaseRef = useRef('idle');
   const detectorRef = useRef(null);
   const calibEarsRef = useRef([]);
+  const calibStartRef = useRef(0);
+  const CALIB_TIMEOUT_MS = 20000;
+  const CALIB_MIN_FRAMES = 10;
   const notifyLockRef = useRef({ CRITICO: 0, MEDIO: 0 });
   const alarmStateRef = useRef({ on: false });
   const levelRef = useRef('NORMAL');
@@ -86,6 +89,28 @@ export default function CameraDrowsiness() {
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+  }
+
+  // Cierra la calibración con lo recolectado (o valores por defecto) y pasa a running.
+  // partial=true cuando hubo timeout u omisión manual: nunca deja la IA colgada.
+  function finishCalibration(partial) {
+    const detector = detectorRef.current;
+    if (!detector) return;
+    const n = calibEarsRef.current.length;
+    if (n >= CALIB_MIN_FRAMES) detector.train(calibEarsRef.current);
+    setPhase('running');
+    setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: 60 }));
+    pushToast(
+      n >= 60
+        ? 'IA calibrada: umbral personal de ojos cerrados listo'
+        : `Calibración parcial (${n} cuadros): se usa umbral ${n >= CALIB_MIN_FRAMES ? 'estimado' : 'por defecto'}. Mejore la luz y mire al frente.`,
+      n >= 60 ? 'success' : 'warning'
+    );
+  }
+
+  function skipCalibration() {
+    if (phaseRef.current !== 'calibrating') return;
+    finishCalibration(true);
   }
 
   async function notify(nivel) {
@@ -167,6 +192,7 @@ export default function CameraDrowsiness() {
 
       detectorRef.current = createDrowsinessDetector();
       calibEarsRef.current = [];
+      calibStartRef.current = Date.now();
       alarmStateRef.current = { on: false };
       setAlarmOn(false);
       setPhase('calibrating');
@@ -220,6 +246,10 @@ export default function CameraDrowsiness() {
           if (!lm || !detector) {
             if (detector) detector.push(null);
             setMetrics((m) => ({ ...m, face: Boolean(lm) }));
+            // Sin rostro durante el timeout: salir igual con valores por defecto.
+            if (ph === 'calibrating' && Date.now() - calibStartRef.current > CALIB_TIMEOUT_MS) {
+              finishCalibration(true);
+            }
           } else {
             const left = earFor(lm, 'left');
             const right = earFor(lm, 'right');
@@ -231,10 +261,10 @@ export default function CameraDrowsiness() {
               calibEarsRef.current.push(ear);
               setMetrics((m) => ({ ...m, ear, calFrame: calibEarsRef.current.length, face: true }));
               if (calibEarsRef.current.length >= 60) {
-                detector.train(calibEarsRef.current);
-                setPhase('running');
-                setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: 60 }));
-                pushToast('IA calibrada: umbral personal de ojos cerrados listo', 'success');
+                finishCalibration(false);
+              } else if (Date.now() - calibStartRef.current > CALIB_TIMEOUT_MS) {
+                // Sin 60 cuadros en 20 s (rostro intermitente): no quedarse colgado.
+                finishCalibration(true);
               }
             } else {
               const res = detector.push(ear);
@@ -326,12 +356,19 @@ export default function CameraDrowsiness() {
               )}
             </div>
             {phase === 'calibrating' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 p-4 text-center">
                 <Loader2 size={26} className="animate-spin text-warning" />
                 <p className="text-xs font-bold uppercase tracking-widest text-warning">Calibrando la IA · mirar al frente con los ojos abiertos</p>
                 <p className="text-[10px] text-muted">
                   {Math.min(60, metrics.calFrame)}/60 cuadros{metrics.ear != null ? ` · EAR ${metrics.ear.toFixed(2)}` : ' · buscando rostro…'}
                 </p>
+                <button
+                  type="button"
+                  onClick={skipCalibration}
+                  className="mt-1 rounded-lg border border-warning/50 bg-black/60 px-3 py-1.5 text-[11px] font-bold text-warning hover:bg-warning/15"
+                >
+                  Omitir calibración
+                </button>
               </div>
             )}
             {phase === 'running' && !metrics.face && (level === 'NORMAL' || level === 'BAJO') && (
