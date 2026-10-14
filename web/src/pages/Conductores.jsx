@@ -82,8 +82,15 @@ export default function Conductores() {
         await api.updateDriver(editing, payload);
         pushToast('Conductor actualizado', 'success');
       } else {
-        await api.createDriver(payload);
-        pushToast('Conductor registrado. Su clave inicial es la cédula.', 'success');
+        const created = await api.createDriver(payload);
+        if (created.email_enviado) {
+          pushToast('Conductor registrado y correo enviado.', 'success');
+        } else {
+          pushToast(
+            `Conductor registrado, pero el correo falló: ${created.email_error || 'sin servicio de correo'}`,
+            'warning'
+          );
+        }
       }
       reset();
       await load();

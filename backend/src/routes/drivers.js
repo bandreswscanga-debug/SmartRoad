@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { sendWelcomeEmail } = require('../services/mailer');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -92,7 +93,14 @@ module.exports = (store) => {
         licencia: licencia ? String(licencia).trim() : null,
         empresa: empresa ? String(empresa).trim() : null
       });
-      res.status(201).json({ driver, user: publicUser(user) });
+      // Correo de bienvenida: si falla, se avisa al admin sin perder el registro.
+      const correo = await sendWelcomeEmail({ to: email, nombre, cedula: documento });
+      res.status(201).json({
+        driver,
+        user: publicUser(user),
+        email_enviado: correo.enviado,
+        ...(correo.enviado ? { email_via: correo.via } : { email_error: correo.error })
+      });
     } catch (err) {
       // Si el conductor falló pero el usuario se creó, se revierte para no dejar huérfanos.
       if (user && user.id && typeof store.q !== 'function') {
