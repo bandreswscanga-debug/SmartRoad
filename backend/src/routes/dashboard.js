@@ -1,21 +1,33 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { riskRank } = require('../services/storage');
+const { conductorVehicleIds } = require('../services/scope');
 
 module.exports = (store, ctx) => {
   const router = express.Router();
 
   router.use(requireAuth);
 
-  router.get('/summary', async (_req, res) => {
-    const vehicles = await store.listVehicles();
+  router.get('/summary', async (req, res) => {
+    let vehicles = await store.listVehicles();
+    const alertsAll = await store.listAlerts();
+    const eventsAll = await store.listEvents();
+    let alerts = alertsAll;
+    let events = eventsAll;
+    if (req.user.rol === 'conductor') {
+      const ids = await conductorVehicleIds(store, req.user);
+      vehicles = vehicles.filter((v) => ids.includes(v.id));
+      alerts = alerts.filter((a) => ids.includes(Number(a.vehiculo_id)));
+      events = events.filter((e) => ids.includes(Number(e.vehiculo_id)));
+    }
     const active = vehicles.filter((v) => v.estado === 'MOVIENDO');
-    const alerts = await store.listAlerts();
     const activeAlerts = alerts.filter((a) => a.estado === 'ACTIVA');
-    const events = await store.listEvents();
     const config = await store.getKeyConfig();
-    const drivers = await store.listDrivers();
+    const driversAll = await store.listDrivers();
 
+    const drivers = req.user.rol === 'conductor'
+      ? driversAll.filter((d) => Number(d.usuario_id) === Number(req.user.id) || d.email === req.user.email)
+      : driversAll;
     const dist = { BAJO: 0, MEDIO: 0, CRITICO: 0 };
     vehicles.forEach((v) => {
       dist[v.riesgo] = (dist[v.riesgo] || 0) + 1;
@@ -62,8 +74,12 @@ module.exports = (store, ctx) => {
     res.json({ series: points, hours });
   });
 
-  router.get('/recent-alerts', async (_req, res) => {
-    const alerts = await store.listAlerts();
+  router.get('/recent-alerts', async (req, res) => {
+    let alerts = await store.listAlerts();
+    if (req.user.rol === 'conductor') {
+      const ids = await conductorVehicleIds(store, req.user);
+      alerts = alerts.filter((a) => ids.includes(Number(a.vehiculo_id)));
+    }
     const rows = alerts.slice(0, 6).map((a) => ({
       id: a.id,
       tipo: a.tipo,
@@ -77,8 +93,12 @@ module.exports = (store, ctx) => {
     res.json({ alerts: rows });
   });
 
-  router.get('/heatmap', async (_req, res) => {
-    const events = await store.listEvents();
+  router.get('/heatmap', async (req, res) => {
+    let events = await store.listEvents();
+    if (req.user.rol === 'conductor') {
+      const ids = await conductorVehicleIds(store, req.user);
+      events = events.filter((e) => ids.includes(Number(e.vehiculo_id)));
+    }
     res.json({
       puntos: events.slice(0, 30).map((e) => ({ lat: e.lat, lng: e.lng, nivel: riskRank(e.riesgo) + 1 }))
     });
