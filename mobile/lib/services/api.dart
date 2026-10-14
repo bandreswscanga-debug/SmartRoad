@@ -56,7 +56,7 @@ class ApiClient {
           _ => throw ApiException('Método no soportado: $method'),
         };
       } catch (err) {
-        throw ApiException('Sin conexión con $baseUrl. Revise red/USB y el campo Servidor.');
+        throw ApiException('Sin conexión con $baseUrl [$err]. Revise red/USB y el campo Servidor.');
       }
     })();
     final data = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;
