@@ -17,6 +17,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _telefono = TextEditingController();
   final TextEditingController _licencia = TextEditingController();
   final TextEditingController _empresa = TextEditingController();
+  final TextEditingController _tipoVehiculo = TextEditingController();
+  final TextEditingController _tipoSangre = TextEditingController();
   final TextEditingController _actual = TextEditingController();
   final TextEditingController _nueva = TextEditingController();
 
@@ -41,6 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _telefono.dispose();
     _licencia.dispose();
     _empresa.dispose();
+    _tipoVehiculo.dispose();
+    _tipoSangre.dispose();
     _actual.dispose();
     _nueva.dispose();
     super.dispose();
@@ -58,6 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _telefono.text = '${conductor?['telefono'] ?? ''}';
         _licencia.text = '${conductor?['licencia'] ?? ''}';
         _empresa.text = '${conductor?['empresa'] ?? ''}';
+        _tipoVehiculo.text = '${conductor?['tipo_vehiculo'] ?? ''}';
+        _tipoSangre.text = '${conductor?['tipo_sangre'] ?? ''}';
         _loading = false;
       });
     } catch (err) {
@@ -80,6 +86,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'telefono': _telefono.text.trim(),
         'licencia': _licencia.text.trim(),
         'empresa': _empresa.text.trim(),
+        'tipo_vehiculo': _tipoVehiculo.text.trim(),
+        'tipo_sangre': _tipoSangre.text.trim(),
       });
       if (!mounted) return;
       setState(() => _message = 'Perfil actualizado.');
@@ -149,6 +157,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextField(
               controller: _empresa,
               decoration: const InputDecoration(labelText: 'Empresa')),
+          const SizedBox(height: 12),
+          TextField(
+              controller: _tipoVehiculo,
+              decoration: const InputDecoration(labelText: 'Tipo de vehículo')),
+          const SizedBox(height: 12),
+          TextField(
+              controller: _tipoSangre,
+              decoration: const InputDecoration(labelText: 'Tipo de sangre')),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: _saving ? null : _save,

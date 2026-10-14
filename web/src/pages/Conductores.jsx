@@ -6,7 +6,9 @@ import { RiskBadge, Meter, Spinner, Empty } from '../components/ui';
 import { fmtDate, toCsv, download } from '../utils/format';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const empty = { nombre: '', documento: '', email: '', placa: '', telefono: '', licencia: '', empresa: '' };
+const empty = { nombre: '', documento: '', email: '', placa: '', telefono: '', licencia: '', empresa: '', tipo_vehiculo: '', tipo_sangre: '' };
+const TIPOS_VEHICULO = ['Carga pesada', 'Carga media', 'Utilitario', 'Particular', 'Motocicleta'];
+const TIPOS_SANGRE = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
 export default function Conductores() {
   const { pushToast, user } = useApp();
@@ -60,7 +62,9 @@ export default function Conductores() {
       placa: d.placa || '',
       telefono: d.telefono || '',
       licencia: d.licencia || '',
-      empresa: d.empresa || ''
+      empresa: d.empresa || '',
+      tipo_vehiculo: d.tipo_vehiculo || '',
+      tipo_sangre: d.tipo_sangre || ''
     });
     setFormError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -80,7 +84,9 @@ export default function Conductores() {
         placa: form.placa.trim().toUpperCase(),
         telefono: form.telefono.trim() || undefined,
         licencia: form.licencia.trim() || undefined,
-        empresa: form.empresa.trim() || undefined
+        empresa: form.empresa.trim() || undefined,
+        tipo_vehiculo: form.tipo_vehiculo || undefined,
+        tipo_sangre: form.tipo_sangre || undefined
       };
       if (editing) {
         // Al editar no se reenvía la cédula como clave; solo datos.
@@ -168,6 +174,14 @@ export default function Conductores() {
             <input className="field" placeholder="Placa *" value={form.placa} onChange={(e) => set('placa', e.target.value.toUpperCase())} required />
             <input className="field" placeholder="Teléfono" value={form.telefono} onChange={(e) => set('telefono', e.target.value)} />
             <input className="field" placeholder="Licencia" value={form.licencia} onChange={(e) => set('licencia', e.target.value)} />
+            <select className="field" value={form.tipo_vehiculo} onChange={(e) => set('tipo_vehiculo', e.target.value)}>
+              <option value="">Tipo de vehículo</option>
+              {TIPOS_VEHICULO.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select className="field" value={form.tipo_sangre} onChange={(e) => set('tipo_sangre', e.target.value)}>
+              <option value="">Tipo de sangre</option>
+              {TIPOS_SANGRE.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
             <input className="field md:col-span-2" placeholder="Empresa" value={form.empresa} onChange={(e) => set('empresa', e.target.value)} />
             {formError && <p className="md:col-span-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs font-bold text-danger-bright">{formError}</p>}
             <div className="flex gap-2 md:col-span-4">
