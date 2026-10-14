@@ -8,6 +8,7 @@ import { playAlarm, stopAlarm, playChime } from '../utils/alarm';
 
 const MODEL_URL = '/mediapipe/wasm';
 const TASK_URL = '/mediapipe/face_landmarker.task';
+const IA_VERSION = 'v6';
 
 let landmarkerPromise = null;
 function getLandmarker() {
@@ -250,12 +251,14 @@ export default function CameraDrowsiness() {
         throw new Error('La cámara no entrega imagen (otro programa podría estar usándola). Ciérrela y reintente.');
       }
       // La carga del modelo (3.7 MB + wasm) no debe colgarse sin aviso.
+      setMetrics((m) => ({ ...m, modelo: 'cargando' }));
       await Promise.race([
         getLandmarker(),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Modelo IA: tiempo de carga agotado, revise su conexión.')), 60000)
         )
       ]);
+      setMetrics((m) => ({ ...m, modelo: 'ok' }));
       if (!mountedRef.current) return;
 
       detectorRef.current = createDrowsinessDetector();
@@ -402,7 +405,7 @@ export default function CameraDrowsiness() {
           </span>
           <div>
             <p className="text-sm font-extrabold">Modo de prueba · Detección de somnolencia (IA)</p>
-            <p className="text-[11px] text-muted">Cámara del panel · FaceMesh (478 puntos) + EAR/PERCLOS con calibración personal</p>
+            <p className="text-[11px] text-muted">Cámara del panel · FaceMesh (478 puntos) + EAR/PERCLOS con calibración personal · {IA_VERSION}</p>
           </div>
         </div>
         {phase === 'idle' || phase === 'error' || phase === 'starting' ? (
@@ -496,7 +499,7 @@ export default function CameraDrowsiness() {
             </div>
 
             <div className="rounded-lg border border-border-soft bg-surface px-3.5 py-2.5 font-mono text-[10px] leading-relaxed text-faint">
-              diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}{metrics.inferMs != null ? ` · IA ${metrics.inferMs} ms` : ''}
+              diag · video {metrics.video || '—'} · modelo {metrics.modelo || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}{metrics.inferMs != null ? ` · IA ${metrics.inferMs} ms` : ''}
               {metrics.detectError ? ` · error: ${metrics.detectError}` : ''}
             </div>
 
