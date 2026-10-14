@@ -24,6 +24,10 @@ async function request(path, options = {}) {
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => request('/auth/me'),
+  users: () => request('/users'),
+  createUser: (body) => request('/users', { method: 'POST', body: JSON.stringify(body) }),
+  updateUser: (id, body) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   summary: () => request('/dashboard/summary'),
   fatigue: (hours = 24) => request(`/dashboard/fatigue?hours=${hours}`),
   recentAlerts: () => request('/dashboard/recent-alerts'),

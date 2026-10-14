@@ -11,6 +11,7 @@ const { createTracer } = require('./services/tracer');
 const { requireAuth, requireAdmin } = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/openapi');
 const vehicleRoutes = require('./routes/vehicles');
@@ -89,6 +90,7 @@ async function createApp() {
   app.use('/api', smartroadCrudRoutes);
 
   app.use('/api/auth', authLimiter, authRoutes(store, ctx));
+  app.use('/api/users', userRoutes(store, ctx));
   app.use('/api/dashboard', dashboardRoutes(store, ctx));
   app.use('/api/vehicles', vehicleRoutes(store));
   app.use('/api/drivers', driverRoutes(store));

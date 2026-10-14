@@ -14,7 +14,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _email = TextEditingController(text: 'bandreswscanga@hgmail.com');
+  final TextEditingController _email =
+      TextEditingController(text: 'bandreswscanga@hgmail.com');
   final TextEditingController _pass = TextEditingController(text: '5304566767');
   final ApiClient _api = ApiClient();
   bool _busy = false;
@@ -72,7 +73,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'SENA · SmartRoad S.O.S · ESP32',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.faint, fontSize: 10, letterSpacing: 1.5),
+                    style: TextStyle(
+                        color: AppColors.faint,
+                        fontSize: 10,
+                        letterSpacing: 1.5),
                   ),
                 ],
               ),
@@ -114,13 +118,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.danger.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.danger.withValues(alpha: 0.5)),
+                  border: Border.all(
+                      color: AppColors.danger.withValues(alpha: 0.5)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: AppColors.dangerBright, size: 18),
+                    const Icon(Icons.error_outline,
+                        color: AppColors.dangerBright, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.dangerBright, fontSize: 12))),
+                    Expanded(
+                        child: Text(_error!,
+                            style: const TextStyle(
+                                color: AppColors.dangerBright, fontSize: 12))),
                   ],
                 ),
               ),
@@ -129,7 +138,11 @@ class _LoginScreenState extends State<LoginScreen> {
             FilledButton(
               onPressed: _busy ? null : _submit,
               child: _busy
-                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Text('Ingresar al panel'),
             ),
             const SizedBox(height: 12),
@@ -156,17 +169,28 @@ class _Logo extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.danger,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: AppColors.danger.withValues(alpha: 0.4), blurRadius: 40, spreadRadius: 4)],
+            boxShadow: [
+              BoxShadow(
+                  color: AppColors.danger.withValues(alpha: 0.4),
+                  blurRadius: 40,
+                  spreadRadius: 4)
+            ],
           ),
-          child: const Icon(Icons.shield_rounded, color: Colors.white, size: 42),
+          child:
+              const Icon(Icons.shield_rounded, color: Colors.white, size: 42),
         ),
         const SizedBox(height: 14),
         const Text.rich(
           TextSpan(
             text: 'SmartRoad ',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.text),
+            style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: AppColors.text),
             children: [
-              TextSpan(text: 'S.O.S', style: TextStyle(color: AppColors.dangerBright)),
+              TextSpan(
+                  text: 'S.O.S',
+                  style: TextStyle(color: AppColors.dangerBright)),
             ],
           ),
         ),

@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
   password_hash VARCHAR(255) NOT NULL,
   rol ENUM('admin','conductor') NOT NULL DEFAULT 'conductor',
   activo TINYINT(1) NOT NULL DEFAULT 1,
+  placa VARCHAR(20),
+  tipo_vehiculo VARCHAR(80),
+  tipo_sangre VARCHAR(5),
   creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

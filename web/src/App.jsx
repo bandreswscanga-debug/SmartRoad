@@ -11,6 +11,7 @@ import Conductores from './pages/Conductores';
 import Alertas from './pages/Alertas';
 import AppMovil from './pages/AppMovil';
 import Configuracion from './pages/Configuracion';
+import Usuarios from './pages/Usuarios';
 
 function Protected({ children }) {
   const { token } = useApp();
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="alertas" element={<Alertas />} />
                 <Route path="app-movil" element={<AppMovil />} />
                 <Route path="configuracion" element={<Configuracion />} />
+                <Route path="usuarios" element={<Usuarios />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

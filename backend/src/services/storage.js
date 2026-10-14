@@ -46,6 +46,34 @@ class MemoryStore {
     return this.users.find((u) => u.id === Number(id)) || null;
   }
 
+  async listUsers() {
+    return this.users
+      .map(({ password_hash, ...user }) => ({ ...user }))
+      .sort((a, b) => a.id - b.id);
+  }
+
+  async createUser(user) {
+    const row = { id: this.next('user'), ...user };
+    this.users.push(row);
+    const { password_hash, ...safe } = row;
+    return safe;
+  }
+
+  async updateUser(id, patch) {
+    const user = this.users.find((item) => item.id === Number(id));
+    if (!user) return null;
+    Object.assign(user, patch);
+    const { password_hash, ...safe } = user;
+    return safe;
+  }
+
+  async deleteUser(id) {
+    const index = this.users.findIndex((user) => user.id === Number(id));
+    if (index < 0) return false;
+    this.users.splice(index, 1);
+    return true;
+  }
+
   async listVehicles() {
     return this.vehicles.map((v) => ({ ...v })).sort((a, b) => a.codigo.localeCompare(b.codigo));
   }

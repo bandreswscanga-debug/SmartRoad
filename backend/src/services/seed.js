@@ -34,8 +34,9 @@ function buildStore() {
   const userPassword = bcrypt.hashSync('Conductor123', 10);
 
   state.users.push(
-    { id: ++seq.user, nombre: 'Administrador Demo', email: 'admin@smartroad-demo.com', password_hash: masterPassword, rol: 'admin', activo: 1, creado: hoursAgo(240) },
-    { id: ++seq.user, nombre: 'Juan Pérez', email: 'juan@smartroad-demo.com', password_hash: userPassword, rol: 'conductor', activo: 1, creado: hoursAgo(240) }
+    { id: ++seq.user, nombre: 'Administrador Demo', email: 'bandreswscanga@hgmail.com', password_hash: bcrypt.hashSync('5304566767', 10), rol: 'admin', activo: 1, creado: hoursAgo(240), placa: null, tipo_vehiculo: null, tipo_sangre: null },
+    { id: ++seq.user, nombre: 'Administrador Demo', email: 'admin@smartroad-demo.com', password_hash: masterPassword, rol: 'admin', activo: 1, creado: hoursAgo(240), placa: null, tipo_vehiculo: null, tipo_sangre: null },
+    { id: ++seq.user, nombre: 'Juan Pérez', email: 'juan@smartroad-demo.com', password_hash: userPassword, rol: 'conductor', activo: 1, creado: hoursAgo(240), placa: 'SRD-001', tipo_vehiculo: 'Carga pesada', tipo_sangre: 'O+' }
   );
 
   state.drivers.push(

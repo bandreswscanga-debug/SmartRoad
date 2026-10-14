@@ -16,7 +16,7 @@ const NAV = [
 ];
 
 export default function Sidebar({ open, onClose }) {
-  const { activeAlerts } = useApp();
+  const { activeAlerts, user } = useApp();
   return (
     <>
       <aside
@@ -60,6 +60,15 @@ export default function Sidebar({ open, onClose }) {
               )}
             </NavLink>
           ))}
+          {user?.rol === 'admin' && (
+            <NavLink to="/usuarios" onClick={onClose} className={({ isActive }) =>
+              `group flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13px] font-semibold ${
+                isActive ? 'bg-danger/15 text-danger-bright border border-danger/25' : 'text-muted border border-transparent hover:bg-surface-2 hover:text-text'
+              }`
+            }>
+              <Users size={17} /> Usuarios / auditoría
+            </NavLink>
+          )}
         </nav>
 
         <div className="border-t border-border p-4">
