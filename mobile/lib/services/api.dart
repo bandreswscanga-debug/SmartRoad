@@ -4,11 +4,23 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  ApiClient({this.baseUrl = defaultBase});
+  ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? defaultBase;
 
   static const defaultBase = 'http://192.168.101.8:4000';
-  final String baseUrl;
+  static const prefsBaseKey = 'srs_base';
+  String baseUrl;
   String? token;
+
+  static Future<String> savedBase() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = (prefs.getString(prefsBaseKey) ?? '').trim();
+    return saved.isEmpty ? defaultBase : saved;
+  }
+
+  static Future<void> saveBase(String base) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(prefsBaseKey, base.trim());
+  }
 
   Uri _u(String path) => Uri.parse('$baseUrl$path');
 
@@ -18,10 +30,17 @@ class ApiClient {
       };
 
   Future<void> _ensureToken() async {
-    if (token != null && token!.isNotEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString('srs_token');
+    if ((token == null || token!.isEmpty) || _baseLoaded != true) {
+      final prefs = await SharedPreferences.getInstance();
+      token ??= prefs.getString('srs_token');
+      if (token != null && token!.isEmpty) token = null;
+      final saved = (prefs.getString(prefsBaseKey) ?? '').trim();
+      if (saved.isNotEmpty) baseUrl = saved;
+      _baseLoaded = true;
+    }
   }
+
+  bool? _baseLoaded;
 
   Future<dynamic> _send(String method, String path, [Object? body]) async {
     await _ensureToken();

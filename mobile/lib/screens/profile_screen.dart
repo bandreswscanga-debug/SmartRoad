@@ -24,6 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _changing = false;
+  bool _showActual = false;
+  bool _showNueva = false;
   String? _message;
   String? _passMessage;
 
@@ -162,15 +164,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _actual,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Contraseña actual'),
+            obscureText: !_showActual,
+            decoration: InputDecoration(
+              labelText: 'Contraseña actual',
+              suffixIcon: IconButton(
+                tooltip: _showActual ? 'Ocultar' : 'Mostrar',
+                onPressed: () => setState(() => _showActual = !_showActual),
+                icon: Icon(
+                  _showActual ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.faint,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _nueva,
-            obscureText: true,
-            decoration: const InputDecoration(
-                labelText: 'Nueva contraseña (mínimo 8 caracteres)'),
+            obscureText: !_showNueva,
+            decoration: InputDecoration(
+              labelText: 'Nueva contraseña (mínimo 8 caracteres)',
+              suffixIcon: IconButton(
+                tooltip: _showNueva ? 'Ocultar' : 'Mostrar',
+                onPressed: () => setState(() => _showNueva = !_showNueva),
+                icon: Icon(
+                  _showNueva ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.faint,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
