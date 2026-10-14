@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { api } from '../api/client';
 import { Camera, Video, VideoOff, Eye, Activity, Volume2, VolumeX, Loader2, ShieldAlert, Radio, ScanSearch } from 'lucide-react';
-import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { FaceLandmarker, FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision';
 import { earFor, createDrowsinessDetector } from '../utils/drowsiness';
 import { playAlarm, stopAlarm, playChime } from '../utils/alarm';
 
 const MODEL_URL = '/mediapipe/wasm';
 const TASK_URL = '/mediapipe/face_landmarker.task';
-const IA_VERSION = 'v6';
+const DETECTOR_URL = '/mediapipe/blaze_face_short_range.tflite';
+const IA_VERSION = 'v7-dos-etapas';
 
 let landmarkerPromise = null;
 function getLandmarker() {
@@ -32,6 +33,71 @@ function getLandmarker() {
     })();
   }
   return landmarkerPromise;
+}
+
+// Etapa 1: detector de rostros liviano y tolerante (BlazeFace).
+// Etapa 2: puntos de ojos sobre el recorte ampliado (mucho más fiable
+// con rostros pequeños o luz difícil que el modelo directo al cuadro).
+let detectorPromise = null;
+function getDetector() {
+  if (!detectorPromise) {
+    detectorPromise = (async () => {
+      const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
+      const opts = (delegate) => ({
+        baseOptions: { modelAssetPath: DETECTOR_URL, delegate },
+        runningMode: 'VIDEO',
+        minDetectionConfidence: 0.3
+      });
+      try {
+        return await FaceDetector.createFromOptions(fileset, opts('GPU'));
+      } catch (_gpu) {
+        return FaceDetector.createFromOptions(fileset, opts('CPU'));
+      }
+    })();
+  }
+  return detectorPromise;
+}
+
+let imageLandmarkerPromise = null;
+function getImageLandmarker() {
+  if (!imageLandmarkerPromise) {
+    imageLandmarkerPromise = (async () => {
+      const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
+      const opts = (delegate) => ({
+        baseOptions: { modelAssetPath: TASK_URL, delegate },
+        runningMode: 'IMAGE',
+        numFaces: 1,
+        minFaceDetectionConfidence: 0.3,
+        minFacePresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3
+      });
+      try {
+        return await FaceLandmarker.createFromOptions(fileset, opts('GPU'));
+      } catch (_gpu) {
+        return FaceLandmarker.createFromOptions(fileset, opts('CPU'));
+      }
+    })();
+  }
+  return imageLandmarkerPromise;
+}
+
+// Recorta el rostro (cuadrado ampliado) para la etapa 2.
+function cropFace(video, box, cropCanvas, CROP = 256) {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh || !box) return null;
+  const cx = box.originX + box.width / 2;
+  const cy = box.originY + box.height / 2;
+  const side = Math.min(vw, vh, Math.max(box.width, box.height) * 1.6);
+  if (side < 24) return null;
+  let sx = Math.round(cx - side / 2);
+  let sy = Math.round(cy - side / 2);
+  sx = Math.max(0, Math.min(vw - side, sx));
+  sy = Math.max(0, Math.min(vh - side, sy));
+  cropCanvas.width = CROP;
+  cropCanvas.height = CROP;
+  cropCanvas.getContext('2d').drawImage(video, sx, sy, side, side, 0, 0, CROP, CROP);
+  return { sx, sy, side, size: CROP };
 }
 
 const LEVEL_STYLE = {
@@ -74,6 +140,7 @@ export default function CameraDrowsiness() {
   const levelRef = useRef('NORMAL');
   const mountedRef = useRef(true);
   const lightCanvasRef = useRef(null);
+  const cropCanvasRef = useRef(null);
   const processedRef = useRef(0);
 
   useEffect(() => {
@@ -349,11 +416,23 @@ export default function CameraDrowsiness() {
         setMetrics((m) => ({ ...m, frozen: false }));
         lastVideoTime = video.currentTime;
         try {
-          const landmarker = await getLandmarker();
+          const faceDetector = await getDetector();
           const t0 = performance.now();
-          const result = landmarker.detectForVideo(video, performance.now());
+          const dres = faceDetector.detectForVideo(video, performance.now());
+          const box = dres.detections && dres.detections[0] && dres.detections[0].boundingBox;
+          let lm = null;
+          let crop = null;
+          if (box) {
+            if (!cropCanvasRef.current) cropCanvasRef.current = document.createElement('canvas');
+            crop = cropFace(video, box, cropCanvasRef.current);
+            if (crop) {
+              const ilm = await getImageLandmarker();
+              const lres = ilm.detect(cropCanvasRef.current);
+              lm = lres.faceLandmarks && lres.faceLandmarks[0];
+            }
+          }
           const inferMs = Math.round(performance.now() - t0);
-          paint(g, result);
+          paint(g, video, box, lm, crop);
           processedRef.current += 1;
           setMetrics((m) => {
             const frames = (m.frames || 0) + 1;
@@ -378,10 +457,10 @@ export default function CameraDrowsiness() {
             }
             return { ...m, frames, detectError: null, inferMs, luz };
           });
-          const lm = result.faceLandmarks && result.faceLandmarks[0];
+          const hasFace = Boolean(box);
           if (!lm || !detector) {
             if (detector) detector.push(null);
-            setMetrics((m) => ({ ...m, face: Boolean(lm) }));
+            setMetrics((m) => ({ ...m, face: hasFace }));
             // Sin rostro: si ni siquiera procesa cuadros en 30 s, algo está roto;
             // si procesa pero no detecta, se da hasta 60 s (CPU lentas).
             const limit = processedRef.current > 0 ? 60000 : CALIB_TIMEOUT_MS;
@@ -430,22 +509,36 @@ export default function CameraDrowsiness() {
     rafRef.current = requestAnimationFrame(tick);
   }
 
-  function paint(g, result) {
+  function paint(g, video, box, lm, crop) {
     const w = g.canvas.width;
     const h = g.canvas.height;
+    const sx = w / (video.videoWidth || w);
+    const sy = h / (video.videoHeight || h);
     g.clearRect(0, 0, w, h);
-    if (!result.faceLandmarks || !result.faceLandmarks[0]) return;
-    const lm = result.faceLandmarks[0];
+    // Marco del rostro (etapa 1: verde con puntos, ámbar sin puntos).
+    if (box) {
+      g.lineWidth = 2;
+      g.strokeStyle = lm ? '#22c55e' : '#f59e0b';
+      g.strokeRect(box.originX * sx, box.originY * sy, box.width * sx, box.height * sy);
+    }
+    if (!lm) return;
+    // Puntos de ojos del recorte mapeados al video (etapa 2).
+    const map = (p) => {
+      if (crop) {
+        return { x: (crop.sx + p.x * crop.size) * sx, y: (crop.sy + p.y * crop.size) * sy };
+      }
+      return { x: p.x * w, y: p.y * h };
+    };
     const sets = { left: [362, 385, 387, 263, 373, 380], right: [33, 160, 158, 133, 153, 144] };
     g.lineWidth = 2;
     for (const key of ['left', 'right']) {
-      const pts = sets[key].map((i) => lm[i]);
-      if (!pts.every(Boolean)) continue;
+      const pts = sets[key].map((i) => lm[i]).filter(Boolean).map(map);
+      if (pts.length < 6) continue;
       g.beginPath();
-      g.moveTo(pts[0].x * w, pts[0].y * h);
+      g.moveTo(pts[0].x, pts[0].y);
       if (key === 'left') g.strokeStyle = '#22d3ee';
       else g.strokeStyle = '#f472b6';
-      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x * w, pts[i].y * h);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
       g.stroke();
     }
   }
