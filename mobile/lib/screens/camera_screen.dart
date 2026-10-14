@@ -1,10 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/api.dart';
 import '../theme.dart';
 
-/// Cámara del conductor: en esta versión envía pruebas de nivel al backend
-/// (la detección con IA en vivo vive en el panel web /camara).
-/// Todo queda filtrado a su usuario por el token.
+/// Cámara del conductor: activa la cámara del celular, muestra la foto y
+/// envía pruebas de nivel al backend (la detección con IA en vivo vive en
+/// el panel web /camara). Todo queda filtrado a su usuario por el token.
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
 
@@ -14,9 +16,32 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final ApiClient _api = ApiClient();
+  final ImagePicker _picker = ImagePicker();
   bool _busy = false;
+  bool _cameraBusy = false;
   String? _message;
+  String? _photoPath;
   String _lastLevel = '—';
+
+  Future<void> _activateCamera() async {
+    setState(() {
+      _cameraBusy = true;
+      _message = null;
+    });
+    try {
+      final photo = await _picker.pickImage(source: ImageSource.camera, maxWidth: 1024, imageQuality: 80);
+      if (!mounted) return;
+      setState(() {
+        _photoPath = photo?.path;
+        _message = photo == null ? 'Cámara cancelada.' : 'Foto lista. Ahora reporte su estado.';
+      });
+    } catch (err) {
+      if (!mounted) return;
+      setState(() => _message = 'No se pudo abrir la cámara: $err');
+    } finally {
+      if (mounted) setState(() => _cameraBusy = false);
+    }
+  }
 
   Future<void> _send(String nivel) async {
     setState(() {
@@ -62,7 +87,18 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
             child: Column(
               children: [
-                const Icon(Icons.videocam_outlined, size: 48, color: AppColors.faint),
+                if (_photoPath != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(File(_photoPath!), height: 220, fit: BoxFit.cover),
+                  )
+                else
+                  const Icon(Icons.videocam_outlined, size: 48, color: AppColors.faint),
+                const SizedBox(height: 8),
+                FilledButton.tonal(
+                  onPressed: _cameraBusy ? null : _activateCamera,
+                  child: Text(_cameraBusy ? 'Abriendo cámara…' : 'Activar cámara'),
+                ),
                 const SizedBox(height: 8),
                 Text('Último nivel enviado: $_lastLevel',
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),

@@ -4,12 +4,14 @@ import '../theme.dart';
 import 'history_screen.dart';
 import 'camera_screen.dart';
 import 'reports_screen.dart';
+import 'drivers_admin_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.onLogout});
+  const HomeScreen({super.key, required this.onLogout, this.isAdmin = false});
 
   final VoidCallback onLogout;
+  final bool isAdmin;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -48,16 +50,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final admin = widget.isAdmin;
+    final tabs = <Widget>[
+      MonitorScreen(onLogout: widget.onLogout),
+      const HistoryScreen(),
+      const CameraScreen(),
+      const ReportsScreen(),
+      if (admin) const DriversAdminScreen(),
+      const ProfileScreen(),
+    ];
     return Scaffold(
       body: IndexedStack(
-        index: _index,
-        children: [
-          MonitorScreen(onLogout: widget.onLogout),
-          const HistoryScreen(),
-          const CameraScreen(),
-          const ReportsScreen(),
-          const ProfileScreen(),
-        ],
+        index: _index.clamp(0, tabs.length - 1),
+        children: tabs,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _sosBusy ? null : _quickSos,
@@ -76,12 +81,13 @@ class _HomeScreenState extends State<HomeScreen> {
           indicatorColor: AppColors.danger.withValues(alpha: 0.18),
           selectedIndex: _index,
           onDestinationSelected: (i) => setState(() => _index = i),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.radar), label: 'Monitoreo'),
-            NavigationDestination(icon: Icon(Icons.history), label: 'Historial'),
-            NavigationDestination(icon: Icon(Icons.videocam_outlined), label: 'Cámara'),
-            NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Reportes'),
-            NavigationDestination(icon: Icon(Icons.person_outline), label: 'Perfil'),
+          destinations: [
+            const NavigationDestination(icon: Icon(Icons.radar), label: 'Monitoreo'),
+            const NavigationDestination(icon: Icon(Icons.history), label: 'Historial'),
+            const NavigationDestination(icon: Icon(Icons.videocam_outlined), label: 'Cámara'),
+            const NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Reportes'),
+            if (admin) const NavigationDestination(icon: Icon(Icons.group_outlined), label: 'Conduct.'),
+            const NavigationDestination(icon: Icon(Icons.person_outline), label: 'Perfil'),
           ],
         ),
       ),

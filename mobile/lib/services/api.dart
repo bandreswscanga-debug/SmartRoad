@@ -123,6 +123,11 @@ class ApiClient {
     return data['events'] as List<dynamic>? ?? [];
   }
 
+  Future<List<dynamic>> drivers() async {
+    final data = await _send('GET', '/api/drivers');
+    return data['drivers'] as List<dynamic>? ?? [];
+  }
+
   Future<Map<String, dynamic>> config() async {
     final data = await _send('GET', '/api/config');
     return data['config'] as Map<String, dynamic>? ?? {};
