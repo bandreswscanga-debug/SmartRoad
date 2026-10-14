@@ -200,8 +200,16 @@ export default function Conductores() {
               Copiar credenciales
             </button>
             {(() => {
-              const digits = String(shared.telefono || '').replace(/\D/g, '');
-              if (!digits) return null;
+              // wa.me exige indicativo país: Colombia 57 + 10 dígitos.
+              let digits = String(shared.telefono || '').replace(/\D/g, '');
+              if (/^0/.test(digits)) digits = digits.replace(/^0+/, '');
+              if (/^57/.test(digits)) {
+                // ya trae indicativo
+              } else if (digits.length === 10) {
+                digits = `57${digits}`;
+              } else {
+                return null;
+              }
               const msg = encodeURIComponent(
                 `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).`
               );
