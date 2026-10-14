@@ -17,6 +17,7 @@ export default function Conductores() {
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [shared, setShared] = useState(null); // credenciales listas para compartir
 
   const isAdmin = user?.rol === 'admin';
 
@@ -83,6 +84,13 @@ export default function Conductores() {
         pushToast('Conductor actualizado', 'success');
       } else {
         const created = await api.createDriver(payload);
+        // Tarjeta para compartir credenciales (WhatsApp/copiar): funciona sin correo.
+        setShared({
+          nombre: created.driver?.nombre || payload.nombre,
+          email: created.driver?.email || payload.email,
+          cedula: created.driver?.documento || payload.documento,
+          telefono: created.driver?.telefono || ''
+        });
         if (created.email_enviado) {
           pushToast(
             created.email_preview
@@ -92,7 +100,7 @@ export default function Conductores() {
           );
         } else {
           pushToast(
-            `Conductor registrado, pero el correo falló: ${created.email_error || 'sin servicio de correo'}`,
+            `Conductor registrado. Comparta sus credenciales con la tarjeta de abajo (correo aún no configurado).`,
             'warning'
           );
         }
@@ -166,6 +174,50 @@ export default function Conductores() {
               {editing && <button type="button" className="btn-ghost" onClick={reset}>Cancelar</button>}
             </div>
           </form>
+        </div>
+      )}
+
+      {shared && (
+        <div className="card space-y-3 border-success/40 p-5">
+          <p className="section-title">Credenciales de {shared.nombre} — listas para compartir</p>
+          <div className="grid gap-2 text-xs sm:grid-cols-3">
+            <p className="rounded-lg bg-surface-2 px-3 py-2">Usuario: <b>{shared.email}</b></p>
+            <p className="rounded-lg bg-surface-2 px-3 py-2">Clave inicial: <b>{shared.cedula}</b></p>
+            <p className="rounded-lg bg-surface-2 px-3 py-2">App: el admin comparte el instalador (APK)</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                const msg = `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).`;
+                navigator.clipboard?.writeText(msg).then(
+                  () => pushToast('Credenciales copiadas. Pégalas en WhatsApp o correo.', 'success'),
+                  () => pushToast('No se pudo copiar. Seleccione el texto manualmente.', 'warning')
+                );
+              }}
+            >
+              Copiar credenciales
+            </button>
+            {(() => {
+              const digits = String(shared.telefono || '').replace(/\D/g, '');
+              if (!digits) return null;
+              const msg = encodeURIComponent(
+                `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).`
+              );
+              return (
+                <a
+                  className="btn-ghost"
+                  href={`https://wa.me/${digits}?text=${msg}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Enviar por WhatsApp
+                </a>
+              );
+            })()}
+            <button type="button" className="btn-ghost" onClick={() => setShared(null)}>Cerrar</button>
+          </div>
         </div>
       )}
 
