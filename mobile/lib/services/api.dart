@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiClient {
   ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? defaultBase;
 
-  static const defaultBase = 'http://192.168.101.8:4000';
+  static const defaultBase = 'http://127.0.0.1:4000';
   static const prefsBaseKey = 'srs_base';
   String baseUrl;
   String? token;
@@ -47,12 +47,18 @@ class ApiClient {
     final uri = _u(path);
     final headers = _headers;
     final encoded = body == null ? null : jsonEncode(body);
-    final http.Response resp = switch (method) {
-      'GET' => await http.get(uri, headers: headers).timeout(const Duration(seconds: 12)),
-      'POST' => await http.post(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
-      'PUT' => await http.put(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
-      _ => throw ApiException('Método no soportado: $method'),
-    };
+    final http.Response resp = await (() async {
+      try {
+        return await switch (method) {
+          'GET' => http.get(uri, headers: headers).timeout(const Duration(seconds: 12)),
+          'POST' => http.post(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
+          'PUT' => http.put(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
+          _ => throw ApiException('Método no soportado: $method'),
+        };
+      } catch (err) {
+        throw ApiException('Sin conexión con $baseUrl. Revise red/USB y el campo Servidor.');
+      }
+    })();
     final data = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;
     if (resp.statusCode == 401) {
       token = null;
