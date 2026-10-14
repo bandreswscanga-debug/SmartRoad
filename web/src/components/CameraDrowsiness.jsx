@@ -161,7 +161,23 @@ export default function CameraDrowsiness() {
         throw new Error('El reproductor de video no está listo. Pulse Iniciar cámara de nuevo.');
       }
       video.srcObject = stream;
+      video.muted = true; // propiedad real: el atributo JSX no siempre silencia
       await video.play().catch(() => {});
+      // Puerta de reproducción: solo se calibra con video en movimiento real.
+      // Sin esto, un cuadro congelado deja el 0/60 infinito viéndose "bien".
+      const playing = await new Promise((resolve) => {
+        if (!video.paused && video.currentTime > 0 && video.readyState >= 3) return resolve(true);
+        const to = setTimeout(() => resolve(false), 8000);
+        video.onplaying = () => {
+          clearTimeout(to);
+          resolve(true);
+        };
+      });
+      video.onplaying = null;
+      if (!playing || video.paused) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error('La cámara entrega imagen congelada o no reproduce. Cierre otras apps que la usen y pulse Iniciar de nuevo.');
+      }
       await getLandmarker();
       if (!mountedRef.current) return;
 
