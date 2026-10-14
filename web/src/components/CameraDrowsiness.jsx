@@ -65,7 +65,7 @@ export default function CameraDrowsiness() {
   const calibStartRef = useRef(0);
   const CALIB_TIMEOUT_MS = 30000;
   const CALIB_FRAMES = 30;
-  const CALIB_MIN_EAR = 0.08; // descarta cuadros inválidos (ojos no medibles)
+  const CALIB_MIN_EAR = 0.02; // solo descarta basura (cero/nulo), no ojos reales
   const notifyLockRef = useRef({ CRITICO: 0, MEDIO: 0 });
   const alarmStateRef = useRef({ on: false });
   const levelRef = useRef('NORMAL');
