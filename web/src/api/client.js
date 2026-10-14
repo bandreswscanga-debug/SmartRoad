@@ -70,12 +70,7 @@ export const api = {
   updateConfig: (body) => request('/config', { method: 'PUT', body: JSON.stringify(body) }),
 
   testDrowsiness: (nivel, descripcion) =>
-    request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) }),
-
-  iaEstado: () => request('/ia/estado'),
-  iaAnalizar: (body) => request('/ia/analizar', { method: 'POST', body: JSON.stringify(body) }),
-  iaAnalizarImagen: (image, prompt) =>
-    request('/ia/analizar-imagen', { method: 'POST', body: JSON.stringify({ image, prompt }) })
+    request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) })
 };
 
 export function sseUrl() {
