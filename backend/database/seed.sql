@@ -1,15 +1,15 @@
 USE smartroad_sos;
 
-INSERT INTO usuarios (nombre, email, password_hash, rol, activo) VALUES
-('Administrador Demo', 'bandreswscanga@hgmail.com', '$2a$10$1n5eZVI1Gw8YochstPImMeD6HvKmHG4wNjRFAEwfuUBKDv.nnEwFe', 'admin', 1),
-('Juan Pérez', 'juan@smartroad-demo.com', '$2a$10$oIQOtaBgybv9t5E8H8MR8OpwNAFxfZHJ705HM9sRou.A7t31UE2mC', 'conductor', 1)
+INSERT INTO usuarios (nombre, email, password_hash, rol, activo, cedula, must_change_password) VALUES
+('Administrador Demo', 'bandreswscanga@hgmail.com', '$2a$10$I86quLLmyNWNq/1g8jQY7em2maEhcCe5SAxgCg5zgcrelqm3bbXDS', 'admin', 1, NULL, 0),
+('Juan Pérez', 'juan@smartroad-demo.com', '$2a$10$QnMsPwTxwC37TMN4XnjmF.CRJw1TD9xks/DBEh7eIeQexcReUUFBO', 'conductor', 1, '79123456', 1)
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
 
-INSERT INTO conductores (id, nombre, documento, telefono, licencia, empresa, jornada_horas, ultimo_descanso, kilometros, fatiga_actual, viajes) VALUES
-(1, 'Juan Pérez', '79.123.456', '+57 311 000 1122', 'C3', 'Transportes Ruta 45', 7.5, '02:40', 412, 38, 6),
-(2, 'Lucía Gómez', '1.024.567.890', '+57 315 000 3344', 'C1', 'Transportes Ruta 45', 5.0, '05:10', 268, 22, 4),
-(3, 'Carlos Ruiz', '79.900.123', '+57 300 000 5566', 'C3', 'Flota Andina', 6.2, '03:55', 310, 45, 5),
-(4, 'Ana Torres', '1.098.765.432', '+57 320 000 7788', 'C3', 'Transportes Ruta 45', 11.4, '07:20', 655, 86, 3)
+INSERT INTO conductores (id, nombre, documento, telefono, email, placa, usuario_id, licencia, empresa, jornada_horas, ultimo_descanso, kilometros, fatiga_actual, viajes) VALUES
+(1, 'Juan Pérez', '79123456', '+57 311 000 1122', 'juan@smartroad-demo.com', 'SRD-001', 2, 'C3', 'Transportes Ruta 45', 7.5, '02:40', 412, 38, 6),
+(2, 'Lucía Gómez', '1024567890', '+57 315 000 3344', NULL, NULL, NULL, 'C1', 'Transportes Ruta 45', 5.0, '05:10', 268, 22, 4),
+(3, 'Carlos Ruiz', '79900123', '+57 300 000 5566', NULL, NULL, NULL, 'C3', 'Flota Andina', 6.2, '03:55', 310, 45, 5),
+(4, 'Ana Torres', '1098765432', '+57 320 000 7788', NULL, NULL, NULL, 'C3', 'Transportes Ruta 45', 11.4, '07:20', 655, 86, 3)
 ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
 
 INSERT INTO vehiculos (id, codigo, nombre, placa, tipo, modelo, conductor_id, ruta, estado, riesgo, lat, lng, velocidad, bateria, imei) VALUES
