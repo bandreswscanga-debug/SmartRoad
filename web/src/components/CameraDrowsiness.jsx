@@ -205,7 +205,12 @@ export default function CameraDrowsiness() {
         throw new Error('El reproductor de video no está listo. Cierre y reintente.');
       }
       video.srcObject = stream;
+      video.muted = true; // propiedad real: el atributo React no siempre silencia
       await video.play().catch(() => {});
+      if (video.paused) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error('El navegador bloqueó la reproducción del video. Pulse Iniciar cámara de nuevo.');
+      }
       if (!video.videoWidth) {
         await new Promise((resolve, reject) => {
           const to = setTimeout(() => reject(new Error('timeout')), 5000);
@@ -276,12 +281,15 @@ export default function CameraDrowsiness() {
     setMetrics((m) => ({ ...m, video: `${video.videoWidth}x${video.videoHeight}` }));
     const g = canvas.getContext('2d');
     let lastVideoTime = -1;
+    let frozenFrames = 0;
 
     const tick = async () => {
       const ph = phaseRef.current;
       if (!mountedRef.current || (ph !== 'calibrating' && ph !== 'running')) return;
       const detector = detectorRef.current;
       if (video.currentTime !== lastVideoTime) {
+        frozenFrames = 0;
+        setMetrics((m) => ({ ...m, frozen: false }));
         lastVideoTime = video.currentTime;
         try {
           const landmarker = await getLandmarker();
@@ -325,6 +333,12 @@ export default function CameraDrowsiness() {
         } catch (_e) {
           /* frame fallido: se continúa con el siguiente */
           setMetrics((m) => ({ ...m, detectError: String(_e?.message || _e).slice(0, 120) }));
+        }
+      } else {
+        // El tiempo del video no avanza: imagen congelada, los cuadros no sirven.
+        frozenFrames += 1;
+        if (frozenFrames > 300) {
+          setMetrics((m) => ({ ...m, frozen: true }));
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -413,6 +427,11 @@ export default function CameraDrowsiness() {
                 <p className="text-[10px] text-muted">
                   {Math.min(60, metrics.calFrame)}/60 cuadros{metrics.ear != null ? ` · EAR ${metrics.ear.toFixed(2)}` : ' · buscando rostro…'}
                 </p>
+                {metrics.frozen && (
+                  <p className="rounded-lg border border-danger/50 bg-danger/15 px-3 py-2 text-[11px] font-bold text-danger-bright">
+                    Imagen congelada: pulse Detener e Iniciar de nuevo.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={recalibrate}
@@ -450,7 +469,7 @@ export default function CameraDrowsiness() {
             </div>
 
             <div className="rounded-lg border border-border-soft bg-surface px-3.5 py-2.5 font-mono text-[10px] leading-relaxed text-faint">
-              diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}
+              diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}
               {metrics.detectError ? ` · error: ${metrics.detectError}` : ''}
             </div>
 
