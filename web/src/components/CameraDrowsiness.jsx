@@ -55,6 +55,7 @@ export default function CameraDrowsiness() {
   const [metrics, setMetrics] = useState({ ear: null, perclos: 0, streak: 0, threshold: null, calFrame: 0, face: false });
   const [alarmOn, setAlarmOn] = useState(false);
   const [serverIa, setServerIa] = useState({ busy: false, result: null });
+  const [etapa, setEtapa] = useState('En espera');
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -100,6 +101,7 @@ export default function CameraDrowsiness() {
     if (!detector) return;
     detector.train(calibEarsRef.current);
     setPhase('running');
+    setEtapa('Activa');
     setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: CALIB_FRAMES }));
     pushToast('IA calibrada: umbral personal de ojos cerrados listo', 'success');
   }
@@ -108,6 +110,7 @@ export default function CameraDrowsiness() {
   // nunca un umbral falso ni quedarse colgado.
   function failCalibration() {
     stopEverything();
+    setEtapa('Falló la calibración');
     setError('No se detectó un rostro estable para calibrar. Verifique buena luz, mire al frente a ~50 cm, centre el rostro en el cuadro y que ninguna otra app use la cámara. Luego pulse Iniciar cámara.');
     setPhase('error');
   }
@@ -198,6 +201,7 @@ export default function CameraDrowsiness() {
     }
     setPhase('starting');
     setError(null);
+    setEtapa('Pidiendo permiso a la cámara…');
     setLevel('NORMAL');
     levelRef.current = 'NORMAL';
     // Si el permiso queda sin responder, no colgarse: se informa a los 30 s.
@@ -205,6 +209,7 @@ export default function CameraDrowsiness() {
     const permissionTimer = setTimeout(() => {
       permissionStuck = true;
       if (phaseRef.current === 'starting') {
+        setEtapa('Sin respuesta de la cámara');
         setError('La cámara no responde: acepte el permiso en el navegador o cierre otras apps que la usen, y reintente.');
         setPhase('error');
       }
@@ -251,6 +256,7 @@ export default function CameraDrowsiness() {
         throw new Error('La cámara no entrega imagen (otro programa podría estar usándola). Ciérrela y reintente.');
       }
       // La carga del modelo (3.7 MB + wasm) no debe colgarse sin aviso.
+      setEtapa('Cámara lista, cargando modelo IA…');
       setMetrics((m) => ({ ...m, modelo: 'cargando' }));
       await Promise.race([
         getLandmarker(),
@@ -266,6 +272,7 @@ export default function CameraDrowsiness() {
       calibStartRef.current = Date.now();
       alarmStateRef.current = { on: false };
       setAlarmOn(false);
+      setEtapa('Modelo listo, calibrando con su mirada…');
       setPhase('calibrating');
       pushToast('Modo de prueba: calibrando la IA con sus ojos (mire al frente, sin pestañear), luego mostrando el video', 'info');
       runLoop();
@@ -273,6 +280,7 @@ export default function CameraDrowsiness() {
       clearTimeout(permissionTimer);
       if (!mountedRef.current) return;
       stopEverything();
+      setEtapa('Error al iniciar');
       const msg =
         err?.name === 'NotAllowedError'
           ? 'Permiso de cámara denegado. Habilítelo en el navegador y reintente.'
@@ -288,6 +296,7 @@ export default function CameraDrowsiness() {
     stopEverything();
     detectorRef.current = null;
     setPhase('idle');
+    setEtapa('En espera');
     setLevel('NORMAL');
     levelRef.current = 'NORMAL';
     setAlarmOn(false);
@@ -422,9 +431,10 @@ export default function CameraDrowsiness() {
         )}
       </div>
 
-      {phase === 'starting' && (
+      {phase !== 'idle' && (
         <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3.5 py-3 text-xs text-muted">
-          <Loader2 size={15} className="animate-spin text-info" /> Solicitando cámara y cargando la IA de visión…
+          {(phase === 'starting' || phase === 'calibrating') && <Loader2 size={15} className="animate-spin text-info" />}
+          <span><b>Estado:</b> {etapa}</span>
         </div>
       )}
 
@@ -435,7 +445,12 @@ export default function CameraDrowsiness() {
         </div>
       )}
 
-      {(phase === 'starting' || phase === 'calibrating' || phase === 'running') && (
+      {(phase === 'idle' || phase === 'error') ? (
+        <div className="overflow-hidden rounded-xl border border-border bg-black" style={{ display: 'none' }} aria-hidden="true">
+          <video ref={videoRef} className="aspect-video w-full object-cover" style={{ transform: 'scaleX(-1)' }} muted playsInline />
+          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ transform: 'scaleX(-1)' }} />
+        </div>
+      ) : (
         <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
             <video ref={videoRef} className="aspect-video w-full object-cover" style={{ transform: 'scaleX(-1)' }} muted playsInline />
