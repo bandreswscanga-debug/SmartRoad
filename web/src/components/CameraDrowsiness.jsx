@@ -175,11 +175,25 @@ export default function CameraDrowsiness() {
     setError(null);
     setLevel('NORMAL');
     levelRef.current = 'NORMAL';
+    // Si el permiso queda sin responder, no colgarse: se informa a los 30 s.
+    let permissionStuck = false;
+    const permissionTimer = setTimeout(() => {
+      permissionStuck = true;
+      if (phaseRef.current === 'starting') {
+        setError('La cámara no responde: acepte el permiso en el navegador o cierre otras apps que la usen, y reintente.');
+        setPhase('error');
+      }
+    }, 30000);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false
       });
+      clearTimeout(permissionTimer);
+      if (permissionStuck) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       if (!mountedRef.current) {
         stream.getTracks().forEach((t) => t.stop());
         return;
@@ -205,7 +219,13 @@ export default function CameraDrowsiness() {
         stream.getTracks().forEach((t) => t.stop());
         throw new Error('La cámara no entrega imagen (otro programa podría estar usándola). Ciérrela y reintente.');
       }
-      await getLandmarker();
+      // La carga del modelo (3.7 MB + wasm) no debe colgarse sin aviso.
+      await Promise.race([
+        getLandmarker(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Modelo IA: tiempo de carga agotado, revise su conexión.')), 60000)
+        )
+      ]);
       if (!mountedRef.current) return;
 
       detectorRef.current = createDrowsinessDetector();
@@ -217,6 +237,7 @@ export default function CameraDrowsiness() {
       pushToast('Modo de prueba: calibrando la IA con sus ojos (mire al frente, sin pestañear), luego mostrando el video', 'info');
       runLoop();
     } catch (err) {
+      clearTimeout(permissionTimer);
       if (!mountedRef.current) return;
       stopEverything();
       const msg =
