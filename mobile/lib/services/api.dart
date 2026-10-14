@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiClient {
   ApiClient({this.baseUrl = defaultBase});
 
-  static const defaultBase = 'http://192.168.137.163:4000';
+  static const defaultBase = 'http://192.168.101.8:4000';
   final String baseUrl;
   String? token;
 
