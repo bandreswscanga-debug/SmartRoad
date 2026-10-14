@@ -1,19 +1,27 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useApp } from '../store/AppContext';
-import { Users, Phone, FileText, Coffee, Route, Clock3, Download } from 'lucide-react';
+import { Users, Phone, FileText, Coffee, Route, Clock3, Download, UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { RiskBadge, Meter, Spinner, Empty } from '../components/ui';
 import { fmtDate, toCsv, download } from '../utils/format';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const empty = { nombre: '', documento: '', email: '', placa: '', telefono: '', licencia: '', empresa: '' };
+
 export default function Conductores() {
-  const { pushToast } = useApp();
+  const { pushToast, user } = useApp();
   const [drivers, setDrivers] = useState([]);
   const [detail, setDetail] = useState(null);
   const [detailData, setDetailData] = useState(null);
+  const [form, setForm] = useState(empty);
+  const [editing, setEditing] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState(null);
 
-  useEffect(() => {
-    api.drivers().then((d) => setDrivers(d.drivers)).catch(() => {});
-  }, []);
+  const isAdmin = user?.rol === 'admin';
+
+  const load = () => api.drivers().then((d) => setDrivers(d.drivers)).catch(() => {});
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
     if (!detail) return;
@@ -22,16 +30,88 @@ export default function Conductores() {
   }, [detail]);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      api.drivers().then((d) => setDrivers(d.drivers)).catch(() => {});
-    }, 15000);
+    const id = setInterval(load, 15000);
     return () => clearInterval(id);
   }, []);
+
+  const set = (key, value) => setForm((c) => ({ ...c, [key]: value }));
+
+  function validate() {
+    if (!form.nombre.trim()) return 'Nombre es obligatorio';
+    if (!form.documento.trim()) return 'Cédula es obligatoria';
+    if (!EMAIL_RE.test(form.email)) return 'Correo electrónico inválido';
+    if (!form.placa.trim()) return 'Placa es obligatoria';
+    return null;
+  }
+
+  const reset = () => { setEditing(null); setForm(empty); setFormError(null); };
+
+  const startEdit = (d) => {
+    setEditing(d.id);
+    setForm({
+      nombre: d.nombre || '',
+      documento: d.documento || '',
+      email: d.email || '',
+      placa: d.placa || '',
+      telefono: d.telefono || '',
+      licencia: d.licencia || '',
+      empresa: d.empresa || ''
+    });
+    setFormError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    const erro = validate();
+    if (erro) { setFormError(erro); return; }
+    setBusy(true);
+    setFormError(null);
+    try {
+      const payload = {
+        nombre: form.nombre.trim(),
+        documento: form.documento.trim(),
+        email: form.email.trim(),
+        placa: form.placa.trim().toUpperCase(),
+        telefono: form.telefono.trim() || undefined,
+        licencia: form.licencia.trim() || undefined,
+        empresa: form.empresa.trim() || undefined
+      };
+      if (editing) {
+        // Al editar no se reenvía la cédula como clave; solo datos.
+        await api.updateDriver(editing, payload);
+        pushToast('Conductor actualizado', 'success');
+      } else {
+        await api.createDriver(payload);
+        pushToast('Conductor registrado. Su clave inicial es la cédula.', 'success');
+      }
+      reset();
+      await load();
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (d) => {
+    if (!window.confirm(`¿Eliminar a ${d.nombre}? También se conserva su usuario de acceso.`)) return;
+    try {
+      await api.deleteDriver(d.id);
+      pushToast('Conductor eliminado', 'success');
+      if (detail?.id === d.id) setDetail(null);
+      await load();
+    } catch (err) {
+      pushToast(err.message, 'critical');
+    }
+  };
 
   const exportCsv = () => {
     download('smartroad-conductores.csv', toCsv(drivers, [
       { label: 'nombre', key: 'nombre' },
       { label: 'documento', key: 'documento' },
+      { label: 'correo', key: 'email' },
+      { label: 'placa', key: 'placa' },
       { label: 'telefono', key: 'telefono' },
       { label: 'licencia', key: 'licencia' },
       { label: 'empresa', key: 'empresa' },
@@ -46,6 +126,33 @@ export default function Conductores() {
 
   return (
     <div className="space-y-6">
+      {isAdmin && (
+        <div className="card p-5">
+          <p className="section-title">{editing ? 'Editar conductor' : 'Registrar conductor'}</p>
+          <p className="mb-4 text-xs text-muted">
+            Se crea el usuario de acceso automáticamente: usuario = correo, clave inicial = cédula (hash).
+            {editing ? ' La clave no cambia al editar.' : ''}
+          </p>
+          <form onSubmit={save} className="grid gap-3 md:grid-cols-4">
+            <input className="field" placeholder="Nombre *" value={form.nombre} onChange={(e) => set('nombre', e.target.value)} required />
+            <input className="field" placeholder="Cédula *" value={form.documento} onChange={(e) => set('documento', e.target.value)} required />
+            <input className="field" type="email" placeholder="Correo *" value={form.email} onChange={(e) => set('email', e.target.value)} required />
+            <input className="field" placeholder="Placa *" value={form.placa} onChange={(e) => set('placa', e.target.value.toUpperCase())} required />
+            <input className="field" placeholder="Teléfono" value={form.telefono} onChange={(e) => set('telefono', e.target.value)} />
+            <input className="field" placeholder="Licencia" value={form.licencia} onChange={(e) => set('licencia', e.target.value)} />
+            <input className="field md:col-span-2" placeholder="Empresa" value={form.empresa} onChange={(e) => set('empresa', e.target.value)} />
+            {formError && <p className="md:col-span-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs font-bold text-danger-bright">{formError}</p>}
+            <div className="flex gap-2 md:col-span-4">
+              <button className="btn-primary" disabled={busy}>
+                {editing ? <Pencil size={14} /> : <UserPlus size={14} />}
+                {busy ? 'Guardando…' : editing ? 'Actualizar' : 'Registrar'}
+              </button>
+              {editing && <button type="button" className="btn-ghost" onClick={reset}>Cancelar</button>}
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="card overflow-x-auto">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <p className="section-title">Seguimiento del estado de cada conductor (RF10)</p>
@@ -58,11 +165,12 @@ export default function Conductores() {
         {drivers.length === 0 ? (
           <Empty />
         ) : (
-          <table className="data-table min-w-[900px]">
+          <table className="data-table min-w-[980px]">
             <thead>
               <tr>
                 <th>Conductor</th>
                 <th>Documento</th>
+                <th>Correo / Placa</th>
                 <th>Vehículo asignado</th>
                 <th>Jornada</th>
                 <th>Último descanso</th>
@@ -88,6 +196,10 @@ export default function Conductores() {
                   </td>
                   <td className="font-mono text-[11px] text-muted">{d.documento}</td>
                   <td>
+                    <p className="text-[11px] text-muted">{d.email || '—'}</p>
+                    <p className="font-mono text-[11px] font-bold">{d.placa || '—'}</p>
+                  </td>
+                  <td>
                     <p className="text-xs font-bold">{d.vehiculo?.codigo || 'Sin asignar'}</p>
                     <p className="text-[10px] text-faint">{d.vehiculo?.riesgo ? `riesgo ${d.vehiculo.riesgo}` : '—'}</p>
                   </td>
@@ -99,9 +211,21 @@ export default function Conductores() {
                   </td>
                   <td><RiskBadge riesgo={d.riesgo} small /></td>
                   <td>
-                    <button onClick={() => setDetail(d)} className="text-[11px] font-bold text-info hover:underline">
-                      Detalle →
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setDetail(d)} className="text-[11px] font-bold text-info hover:underline">
+                        Detalle →
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => startEdit(d)} className="text-info hover:opacity-80" title="Editar">
+                            <Pencil size={15} />
+                          </button>
+                          <button onClick={() => remove(d)} className="text-danger-bright hover:opacity-80" title="Eliminar">
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
