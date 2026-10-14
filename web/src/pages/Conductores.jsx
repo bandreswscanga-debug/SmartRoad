@@ -18,11 +18,15 @@ export default function Conductores() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState(null);
   const [shared, setShared] = useState(null); // credenciales listas para compartir
+  const [apkUrl, setApkUrl] = useState(null);
 
   const isAdmin = user?.rol === 'admin';
 
   const load = () => api.drivers().then((d) => setDrivers(d.drivers)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.appInfo().then((a) => setApkUrl(a.apkUrl || null)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!detail) return;
@@ -183,14 +187,16 @@ export default function Conductores() {
           <div className="grid gap-2 text-xs sm:grid-cols-3">
             <p className="rounded-lg bg-surface-2 px-3 py-2">Usuario: <b>{shared.email}</b></p>
             <p className="rounded-lg bg-surface-2 px-3 py-2">Clave inicial: <b>{shared.cedula}</b></p>
-            <p className="rounded-lg bg-surface-2 px-3 py-2">App: el admin comparte el instalador (APK)</p>
+            <p className="rounded-lg bg-surface-2 px-3 py-2">
+              App: {apkUrl ? <a className="font-bold text-info underline" href={apkUrl} target="_blank" rel="noreferrer">Descargar APK</a> : 'el admin comparte el instalador (APK)'}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               className="btn-primary"
               onClick={() => {
-                const msg = `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).`;
+                const msg = `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).${apkUrl ? `\nDescargue la app aquí: ${apkUrl}` : ''}`;
                 navigator.clipboard?.writeText(msg).then(
                   () => pushToast('Credenciales copiadas. Pégalas en WhatsApp o correo.', 'success'),
                   () => pushToast('No se pudo copiar. Seleccione el texto manualmente.', 'warning')
@@ -211,7 +217,7 @@ export default function Conductores() {
                 return null;
               }
               const msg = encodeURIComponent(
-                `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).`
+                `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).${apkUrl ? `\nDescargue la app aquí: ${apkUrl}` : ''}`
               );
               return (
                 <a

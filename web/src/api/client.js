@@ -70,7 +70,9 @@ export const api = {
   updateConfig: (body) => request('/config', { method: 'PUT', body: JSON.stringify(body) }),
 
   testDrowsiness: (nivel, descripcion) =>
-    request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) })
+    request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) }),
+
+  appInfo: () => request('/app-info')
 };
 
 export function sseUrl() {
