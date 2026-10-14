@@ -74,6 +74,7 @@ export default function CameraDrowsiness() {
   const levelRef = useRef('NORMAL');
   const mountedRef = useRef(true);
   const lightCanvasRef = useRef(null);
+  const processedRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -121,6 +122,7 @@ export default function CameraDrowsiness() {
     if (phaseRef.current !== 'calibrating') return;
     calibEarsRef.current = [];
     calibStartRef.current = Date.now();
+    processedRef.current = 0;
     setMetrics((m) => ({ ...m, calFrame: 0 }));
     pushToast('Calibración reiniciada: mire al frente con los ojos abiertos', 'info');
   }
@@ -272,6 +274,7 @@ export default function CameraDrowsiness() {
       detectorRef.current = createDrowsinessDetector();
       calibEarsRef.current = [];
       calibStartRef.current = Date.now();
+      processedRef.current = 0;
       alarmStateRef.current = { on: false };
       setAlarmOn(false);
       setEtapa('Modelo listo, calibrando con su mirada…');
@@ -336,6 +339,7 @@ export default function CameraDrowsiness() {
           const result = landmarker.detectForVideo(video, performance.now());
           const inferMs = Math.round(performance.now() - t0);
           paint(g, result);
+          processedRef.current += 1;
           setMetrics((m) => {
             const frames = (m.frames || 0) + 1;
             // Medidor de luz cada 30 cuadros: si está oscuro, la detección falla.
@@ -363,8 +367,10 @@ export default function CameraDrowsiness() {
           if (!lm || !detector) {
             if (detector) detector.push(null);
             setMetrics((m) => ({ ...m, face: Boolean(lm) }));
-            // Sin rostro en el tiempo límite: fallo explícito con reintento.
-            if (ph === 'calibrating' && Date.now() - calibStartRef.current > CALIB_TIMEOUT_MS) {
+            // Sin rostro: si ni siquiera procesa cuadros en 30 s, algo está roto;
+            // si procesa pero no detecta, se da hasta 60 s (CPU lentas).
+            const limit = processedRef.current > 0 ? 60000 : CALIB_TIMEOUT_MS;
+            if (ph === 'calibrating' && Date.now() - calibStartRef.current > limit) {
               failCalibration();
             }
           } else {
