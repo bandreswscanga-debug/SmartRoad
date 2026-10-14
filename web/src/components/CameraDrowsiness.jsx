@@ -62,8 +62,9 @@ export default function CameraDrowsiness() {
   const detectorRef = useRef(null);
   const calibEarsRef = useRef([]);
   const calibStartRef = useRef(0);
-  const CALIB_TIMEOUT_MS = 20000;
-  const CALIB_MIN_FRAMES = 10;
+  const CALIB_TIMEOUT_MS = 30000;
+  const CALIB_FRAMES = 60;
+  const CALIB_MIN_EAR = 0.08; // descarta cuadros inválidos (ojos no medibles)
   const notifyLockRef = useRef({ CRITICO: 0, MEDIO: 0 });
   const alarmStateRef = useRef({ on: false });
   const levelRef = useRef('NORMAL');
@@ -91,26 +92,30 @@ export default function CameraDrowsiness() {
     if (videoRef.current) videoRef.current.srcObject = null;
   }
 
-  // Cierra la calibración con lo recolectado (o valores por defecto) y pasa a running.
-  // partial=true cuando hubo timeout u omisión manual: nunca deja la IA colgada.
-  function finishCalibration(partial) {
+  // Cierra la calibración solo con muestra suficiente y válida.
+  function finishCalibration() {
     const detector = detectorRef.current;
     if (!detector) return;
-    const n = calibEarsRef.current.length;
-    if (n >= CALIB_MIN_FRAMES) detector.train(calibEarsRef.current);
+    detector.train(calibEarsRef.current);
     setPhase('running');
-    setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: 60 }));
-    pushToast(
-      n >= 60
-        ? 'IA calibrada: umbral personal de ojos cerrados listo'
-        : `Calibración parcial (${n} cuadros): se usa umbral ${n >= CALIB_MIN_FRAMES ? 'estimado' : 'por defecto'}. Mejore la luz y mire al frente.`,
-      n >= 60 ? 'success' : 'warning'
-    );
+    setMetrics((m) => ({ ...m, openEar: detector.openEar, threshold: detector.openEar * 0.62, calFrame: CALIB_FRAMES }));
+    pushToast('IA calibrada: umbral personal de ojos cerrados listo', 'success');
   }
 
-  function skipCalibration() {
+  // Sin rostro estable en el tiempo límite: fallo explícito con reintento,
+  // nunca un umbral falso ni quedarse colgado.
+  function failCalibration() {
+    stopEverything();
+    setError('No se detectó un rostro estable para calibrar. Verifique buena luz, mire al frente a ~50 cm, centre el rostro en el cuadro y que ninguna otra app use la cámara. Luego pulse Iniciar cámara.');
+    setPhase('error');
+  }
+
+  function recalibrate() {
     if (phaseRef.current !== 'calibrating') return;
-    finishCalibration(true);
+    calibEarsRef.current = [];
+    calibStartRef.current = Date.now();
+    setMetrics((m) => ({ ...m, calFrame: 0 }));
+    pushToast('Calibración reiniciada: mire al frente con los ojos abiertos', 'info');
   }
 
   async function notify(nivel) {
@@ -187,6 +192,19 @@ export default function CameraDrowsiness() {
       }
       video.srcObject = stream;
       await video.play().catch(() => {});
+      if (!video.videoWidth) {
+        await new Promise((resolve, reject) => {
+          const to = setTimeout(() => reject(new Error('timeout')), 5000);
+          video.onloadeddata = () => {
+            clearTimeout(to);
+            resolve();
+          };
+        }).catch(() => {});
+      }
+      if (!video.videoWidth) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error('La cámara no entrega imagen (otro programa podría estar usándola). Ciérrela y reintente.');
+      }
       await getLandmarker();
       if (!mountedRef.current) return;
 
@@ -253,9 +271,9 @@ export default function CameraDrowsiness() {
           if (!lm || !detector) {
             if (detector) detector.push(null);
             setMetrics((m) => ({ ...m, face: Boolean(lm) }));
-            // Sin rostro durante el timeout: salir igual con valores por defecto.
+            // Sin rostro en el tiempo límite: fallo explícito con reintento.
             if (ph === 'calibrating' && Date.now() - calibStartRef.current > CALIB_TIMEOUT_MS) {
-              finishCalibration(true);
+              failCalibration();
             }
           } else {
             const left = earFor(lm, 'left');
@@ -265,13 +283,17 @@ export default function CameraDrowsiness() {
               detector.push(null);
               setMetrics((m) => ({ ...m, face: true }));
             } else if (ph === 'calibrating') {
-              calibEarsRef.current.push(ear);
-              setMetrics((m) => ({ ...m, ear, calFrame: calibEarsRef.current.length, face: true }));
-              if (calibEarsRef.current.length >= 60) {
-                finishCalibration(false);
+              // Solo cuadros válidos con ojos medibles; parpadeos atípicos no cuentan.
+              if (ear != null && ear >= CALIB_MIN_EAR) {
+                calibEarsRef.current.push(ear);
+                setMetrics((m) => ({ ...m, ear, calFrame: calibEarsRef.current.length, face: true }));
+              } else {
+                setMetrics((m) => ({ ...m, face: true }));
+              }
+              if (calibEarsRef.current.length >= CALIB_FRAMES) {
+                finishCalibration();
               } else if (Date.now() - calibStartRef.current > CALIB_TIMEOUT_MS) {
-                // Sin 60 cuadros en 20 s (rostro intermitente): no quedarse colgado.
-                finishCalibration(true);
+                failCalibration();
               }
             } else {
               const res = detector.push(ear);
@@ -372,10 +394,10 @@ export default function CameraDrowsiness() {
                 </p>
                 <button
                   type="button"
-                  onClick={skipCalibration}
+                  onClick={recalibrate}
                   className="mt-1 rounded-lg border border-warning/50 bg-black/60 px-3 py-1.5 text-[11px] font-bold text-warning hover:bg-warning/15"
                 >
-                  Omitir calibración
+                  Reiniciar calibración
                 </button>
               </div>
             )}
