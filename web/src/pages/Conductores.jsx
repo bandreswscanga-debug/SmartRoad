@@ -84,7 +84,12 @@ export default function Conductores() {
       } else {
         const created = await api.createDriver(payload);
         if (created.email_enviado) {
-          pushToast('Conductor registrado y correo enviado.', 'success');
+          pushToast(
+            created.email_preview
+              ? `Conductor registrado y correo enviado. Verlo en: ${created.email_preview}`
+              : 'Conductor registrado y correo enviado.',
+            'success'
+          );
         } else {
           pushToast(
             `Conductor registrado, pero el correo falló: ${created.email_error || 'sin servicio de correo'}`,

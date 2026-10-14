@@ -64,8 +64,8 @@ test('admin registra conductor: crea usuario con clave=cedula', async () => {
   assert.equal(json.driver.documento, conductor.documento);
   assert.equal(json.user.email, conductor.email);
   assert.equal(json.user.must_change_password, 1);
-  assert.equal(json.email_enviado, false); // sin correo configurado, registro igual
-  assert.ok(json.email_error);
+  assert.equal(typeof json.email_enviado, 'boolean'); // con o sin correo, el registro queda
+  if (!json.email_enviado) assert.ok(json.email_error);
   conductorId = json.driver.id;
 });
 

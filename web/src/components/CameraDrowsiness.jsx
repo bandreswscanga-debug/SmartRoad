@@ -229,6 +229,12 @@ export default function CameraDrowsiness() {
       rafRef.current = requestAnimationFrame(runLoop);
       return;
     }
+    // El canvas debe coincidir con el video real o el overlay sale descuadrado.
+    if (canvas && (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+    }
+    setMetrics((m) => ({ ...m, video: `${video.videoWidth}x${video.videoHeight}` }));
     const g = canvas.getContext('2d');
     let lastVideoTime = -1;
 
@@ -242,6 +248,7 @@ export default function CameraDrowsiness() {
           const landmarker = await getLandmarker();
           const result = landmarker.detectForVideo(video, performance.now());
           paint(g, result);
+          setMetrics((m) => ({ ...m, frames: (m.frames || 0) + 1, detectError: null }));
           const lm = result.faceLandmarks && result.faceLandmarks[0];
           if (!lm || !detector) {
             if (detector) detector.push(null);
@@ -274,6 +281,7 @@ export default function CameraDrowsiness() {
           }
         } catch (_e) {
           /* frame fallido: se continúa con el siguiente */
+          setMetrics((m) => ({ ...m, detectError: String(_e?.message || _e).slice(0, 120) }));
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -356,7 +364,7 @@ export default function CameraDrowsiness() {
               )}
             </div>
             {phase === 'calibrating' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 p-4 text-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/30 p-4 text-center">
                 <Loader2 size={26} className="animate-spin text-warning" />
                 <p className="text-xs font-bold uppercase tracking-widest text-warning">Calibrando la IA · mirar al frente con los ojos abiertos</p>
                 <p className="text-[10px] text-muted">
@@ -396,6 +404,11 @@ export default function CameraDrowsiness() {
             <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-[10px] leading-relaxed text-faint">
               La IA procesa su rostro dentro del navegador; el video nunca sale de este equipo. Al superar el umbral, se registra un evento/alerta en el panel y suena la alarma.
               Si no hay alguien registrado (0 rostros), no se dispara alarma.
+            </div>
+
+            <div className="rounded-lg border border-border-soft bg-surface px-3.5 py-2.5 font-mono text-[10px] leading-relaxed text-faint">
+              diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}
+              {metrics.detectError ? ` · error: ${metrics.detectError}` : ''}
             </div>
 
             {alarmOn && (

@@ -63,9 +63,25 @@ async function sendWelcomeEmail({ to, nombre, cedula }) {
     }
   }
 
-  // 3. Sin configuración: se registra en consola y se avisa sin fallar.
-  console.warn(`[mailer] Correo no configurado. Bienvenida para ${to} (clave: cédula). Defina RESEND_API_KEY o SMTP_HOST.`);
-  return { enviado: false, error: 'Correo no configurado (RESEND_API_KEY o SMTP_HOST). Registro conservado.' };
+  // 3. Sin configuración: cuenta de prueba Ethereal (demo real sin credenciales).
+  // El correo sí se envía y se puede ver en la URL de vista previa.
+  try {
+    const nodemailer = require('nodemailer');
+    const testAccount = await nodemailer.createTestAccount();
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: { user: testAccount.user, pass: testAccount.pass }
+    });
+    const info = await transporter.sendMail({ from, to, subject, text, html });
+    const preview = nodemailer.getTestMessageUrl(info);
+    console.log(`[mailer] Bienvenida demo enviada a ${to}. Vista previa: ${preview}`);
+    return { enviado: true, via: 'ethereal-demo', preview };
+  } catch (err) {
+    console.warn(`[mailer] Sin servicio de correo (${String(err.message || err).slice(0, 120)}). Bienvenida para ${to} (clave: cédula). Defina RESEND_API_KEY o SMTP_HOST.`);
+    return { enviado: false, error: 'Sin servicio de correo. Defina RESEND_API_KEY o SMTP_HOST. Registro conservado.' };
+  }
 }
 
 function escapeHtml(s) {

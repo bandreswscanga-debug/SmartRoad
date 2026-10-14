@@ -99,7 +99,9 @@ module.exports = (store) => {
         driver,
         user: publicUser(user),
         email_enviado: correo.enviado,
-        ...(correo.enviado ? { email_via: correo.via } : { email_error: correo.error })
+        ...(correo.enviado
+          ? { email_via: correo.via, ...(correo.preview ? { email_preview: correo.preview } : {}) }
+          : { email_error: correo.error })
       });
     } catch (err) {
       // Si el conductor falló pero el usuario se creó, se revierte para no dejar huérfanos.
