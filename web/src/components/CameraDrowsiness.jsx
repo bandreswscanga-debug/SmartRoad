@@ -46,7 +46,7 @@ function getDetector() {
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: DETECTOR_URL, delegate },
         runningMode: 'VIDEO',
-        minDetectionConfidence: 0.3
+        minDetectionConfidence: 0.2
       });
       try {
         return await FaceDetector.createFromOptions(fileset, opts('GPU'));
@@ -141,6 +141,8 @@ export default function CameraDrowsiness() {
   const mountedRef = useRef(true);
   const lightCanvasRef = useRef(null);
   const cropCanvasRef = useRef(null);
+  const fullCanvasRef = useRef(null);
+  const fullScaleRef = useRef(1);
   const processedRef = useRef(0);
 
   useEffect(() => {
@@ -431,6 +433,22 @@ export default function CameraDrowsiness() {
               lm = lres.faceLandmarks && lres.faceLandmarks[0];
             }
           }
+          if (!lm) {
+            // Respaldo: ojos y boca directos al cuadro completo (sin pasar por el rostro).
+            const ilm = await getImageLandmarker();
+            if (!fullCanvasRef.current) fullCanvasRef.current = document.createElement('canvas');
+            const fc = fullCanvasRef.current;
+            const scale = Math.min(1, 480 / Math.max(video.videoWidth, video.videoHeight));
+            fc.width = Math.round(video.videoWidth * scale);
+            fc.height = Math.round(video.videoHeight * scale);
+            fc.getContext('2d').drawImage(video, 0, 0, fc.width, fc.height);
+            const fres = ilm.detect(fc);
+            lm = fres.faceLandmarks && fres.faceLandmarks[0];
+            if (lm) {
+              crop = null; // puntos en coords del cuadro: paint los mapea directo
+              fullScaleRef.current = scale;
+            }
+          }
           const inferMs = Math.round(performance.now() - t0);
           paint(g, video, box, lm, crop);
           processedRef.current += 1;
@@ -522,12 +540,17 @@ export default function CameraDrowsiness() {
       g.strokeRect(box.originX * sx, box.originY * sy, box.width * sx, box.height * sy);
     }
     if (!lm) return;
-    // Puntos de ojos del recorte mapeados al video (etapa 2).
+    // Puntos de ojos del recorte mapeados al video (etapa 2),
+    // o del cuadro completo escalado (respaldo).
     const map = (p) => {
       if (crop) {
         return { x: (crop.sx + p.x * crop.size) * sx, y: (crop.sy + p.y * crop.size) * sy };
       }
-      return { x: p.x * w, y: p.y * h };
+      const s = fullScaleRef.current || 1;
+      const fc = fullCanvasRef.current;
+      const fw = (fc ? fc.width : video.videoWidth) / s;
+      const fh = (fc ? fc.height : video.videoHeight) / s;
+      return { x: p.x * fw * sx, y: p.y * fh * sy };
     };
     const sets = { left: [362, 385, 387, 263, 373, 380], right: [33, 160, 158, 133, 153, 144] };
     g.lineWidth = 2;
