@@ -15,18 +15,19 @@ function getLandmarker() {
   if (!landmarkerPromise) {
     landmarkerPromise = (async () => {
       const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
+      // Umbrales bajos: prioriza detectar rostros en luz/ángulo difíciles.
+      const opts = (delegate) => ({
+        baseOptions: { modelAssetPath: TASK_URL, delegate },
+        runningMode: 'VIDEO',
+        numFaces: 1,
+        minFaceDetectionConfidence: 0.3,
+        minFacePresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3
+      });
       try {
-        return await FaceLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: TASK_URL, delegate: 'GPU' },
-          runningMode: 'VIDEO',
-          numFaces: 1
-        });
+        return await FaceLandmarker.createFromOptions(fileset, opts('GPU'));
       } catch (_gpu) {
-        return FaceLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: TASK_URL, delegate: 'CPU' },
-          runningMode: 'VIDEO',
-          numFaces: 1
-        });
+        return FaceLandmarker.createFromOptions(fileset, opts('CPU'));
       }
     })();
   }
@@ -72,6 +73,7 @@ export default function CameraDrowsiness() {
   const alarmStateRef = useRef({ on: false });
   const levelRef = useRef('NORMAL');
   const mountedRef = useRef(true);
+  const lightCanvasRef = useRef(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -334,7 +336,29 @@ export default function CameraDrowsiness() {
           const result = landmarker.detectForVideo(video, performance.now());
           const inferMs = Math.round(performance.now() - t0);
           paint(g, result);
-          setMetrics((m) => ({ ...m, frames: (m.frames || 0) + 1, detectError: null, inferMs }));
+          setMetrics((m) => {
+            const frames = (m.frames || 0) + 1;
+            // Medidor de luz cada 30 cuadros: si está oscuro, la detección falla.
+            let luz = m.luz;
+            if (frames % 30 === 0) {
+              try {
+                if (!lightCanvasRef.current) {
+                  lightCanvasRef.current = document.createElement('canvas');
+                  lightCanvasRef.current.width = 32;
+                  lightCanvasRef.current.height = 32;
+                }
+                const lc = lightCanvasRef.current.getContext('2d', { willReadFrequently: true });
+                lc.drawImage(video, 0, 0, 32, 32);
+                const px = lc.getImageData(0, 0, 32, 32).data;
+                let sum = 0;
+                for (let i = 0; i < px.length; i += 4) sum += (px[i] + px[i + 1] + px[i + 2]) / 3;
+                luz = Math.round(sum / (px.length / 4));
+              } catch (_l) {
+                /* sin medidor */
+              }
+            }
+            return { ...m, frames, detectError: null, inferMs, luz };
+          });
           const lm = result.faceLandmarks && result.faceLandmarks[0];
           if (!lm || !detector) {
             if (detector) detector.push(null);
@@ -455,6 +479,14 @@ export default function CameraDrowsiness() {
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
             <video ref={videoRef} className="aspect-video w-full object-cover" style={{ transform: 'scaleX(-1)' }} muted playsInline />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ transform: 'scaleX(-1)' }} />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="h-[72%] w-[46%] rounded-[50%] border-2 border-dashed border-white/40" />
+            </div>
+            {metrics.luz != null && metrics.luz < 45 && (
+              <div className="absolute inset-x-3 top-3 rounded-lg border border-warning/50 bg-black/70 px-3 py-2 text-center text-[11px] font-bold text-warning">
+                Poca luz ({metrics.luz}): encienda una luz frontal para que la IA lo detecte.
+              </div>
+            )}
             <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
               <span className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${LEVEL_STYLE[level].pill}`}>
                 {LEVEL_STYLE[level].label}
