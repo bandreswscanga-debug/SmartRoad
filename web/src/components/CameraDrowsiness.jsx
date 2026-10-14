@@ -61,6 +61,7 @@ export default function CameraDrowsiness() {
   const phaseRef = useRef('idle');
   const detectorRef = useRef(null);
   const calibEarsRef = useRef([]);
+  const calibStartRef = useRef(0);
   const notifyLockRef = useRef({ CRITICO: 0, MEDIO: 0 });
   const alarmStateRef = useRef({ on: false });
   const levelRef = useRef('NORMAL');
@@ -77,6 +78,18 @@ export default function CameraDrowsiness() {
 
   useEffect(() => {
     phaseRef.current = phase;
+  }, [phase]);
+
+  // Aporte Daniel: el stream se adhiere por efecto cuando el video ya existe,
+  // sin condición de carrera (el video se monta con la fase).
+  useEffect(() => {
+    if (phase !== 'calibrating' && phase !== 'running') return;
+    const video = videoRef.current;
+    if (video && streamRef.current && video.srcObject !== streamRef.current) {
+      video.muted = true;
+      video.srcObject = streamRef.current;
+      video.play().catch(() => {});
+    }
   }, [phase]);
 
   function stopEverything() {
@@ -155,16 +168,15 @@ export default function CameraDrowsiness() {
         return;
       }
       streamRef.current = stream;
+      // La fase monta el video y el efecto le adhiere el stream (aporte Daniel).
+      setPhase('calibrating');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const video = videoRef.current;
       if (!video) {
         stream.getTracks().forEach((t) => t.stop());
         throw new Error('El reproductor de video no está listo. Pulse Iniciar cámara de nuevo.');
       }
-      video.srcObject = stream;
-      video.muted = true; // propiedad real: el atributo JSX no siempre silencia
-      await video.play().catch(() => {});
       // Puerta de reproducción: solo se calibra con video en movimiento real.
-      // Sin esto, un cuadro congelado deja el 0/60 infinito viéndose "bien".
       const playing = await new Promise((resolve) => {
         if (!video.paused && video.currentTime > 0 && video.readyState >= 3) return resolve(true);
         const to = setTimeout(() => resolve(false), 8000);
@@ -183,9 +195,9 @@ export default function CameraDrowsiness() {
 
       detectorRef.current = createDrowsinessDetector();
       calibEarsRef.current = [];
+      calibStartRef.current = Date.now();
       alarmStateRef.current = { on: false };
       setAlarmOn(false);
-      setPhase('calibrating');
       pushToast('Modo de prueba: calibrando la IA con sus ojos (mire al frente, sin pestañear), luego mostrando el video', 'info');
       runLoop();
     } catch (err) {

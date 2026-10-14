@@ -90,7 +90,7 @@ class MemoryStore {
   async updateConductor(id, patch) {
     const d = this.drivers.find((x) => x.id === Number(id));
     if (!d) return null;
-    const allowed = ['nombre', 'documento', 'telefono', 'email', 'placa', 'usuario_id', 'licencia', 'empresa', 'jornada_horas', 'ultimo_descanso', 'kilometros', 'fatiga_actual', 'viajes'];
+    const allowed = ['nombre', 'documento', 'telefono', 'email', 'placa', 'usuario_id', 'licencia', 'empresa', 'tipo_vehiculo', 'tipo_sangre', 'jornada_horas', 'ultimo_descanso', 'kilometros', 'fatiga_actual', 'viajes'];
     for (const k of allowed) {
       if (patch[k] !== undefined) d[k] = patch[k];
     }
@@ -396,15 +396,15 @@ class MySqlStore {
 
   async createConductor(data) {
     await this.q(
-      'INSERT INTO conductores (nombre, documento, telefono, email, placa, usuario_id, licencia, empresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [data.nombre, data.documento, data.telefono || null, data.email || null, data.placa || null, data.usuario_id || null, data.licencia || null, data.empresa || null]
+      'INSERT INTO conductores (nombre, documento, telefono, email, placa, usuario_id, licencia, empresa, tipo_vehiculo, tipo_sangre) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [data.nombre, data.documento, data.telefono || null, data.email || null, data.placa || null, data.usuario_id || null, data.licencia || null, data.empresa || null, data.tipo_vehiculo || null, data.tipo_sangre || null]
     );
     const [ins] = await this.q('SELECT LAST_INSERT_ID() AS id');
     return this.getDriver(ins.id);
   }
 
   async updateConductor(id, patch) {
-    const allowed = ['nombre', 'documento', 'telefono', 'email', 'placa', 'usuario_id', 'licencia', 'empresa'];
+    const allowed = ['nombre', 'documento', 'telefono', 'email', 'placa', 'usuario_id', 'licencia', 'empresa', 'tipo_vehiculo', 'tipo_sangre'];
     const keys = Object.keys(patch).filter((k) => allowed.includes(k) && patch[k] !== undefined);
     if (keys.length) {
       await this.q(`UPDATE conductores SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`, [...keys.map((k) => patch[k]), Number(id)]);
@@ -508,6 +508,8 @@ class MySqlStore {
       email: d.email || null,
       placa: d.placa || null,
       usuario_id: d.usuario_id || null,
+      tipo_vehiculo: d.tipo_vehiculo || null,
+      tipo_sangre: d.tipo_sangre || null,
       licencia: d.licencia,
       empresa: d.empresa,
       jornada_horas: Number(d.jornada_horas),

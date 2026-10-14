@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>SmartRoad S.O.S. — Evidencia CRUD Mes 1</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; font-size: 10.5pt; line-height: 1.45; }
+  h1 { color: #123b63; font-size: 24pt; margin: 0 0 8px; }
+  h2 { color: #145b86; border-bottom: 2px solid #d6e6f2; padding-bottom: 4px; margin-top: 24px; }
+  h3 { color: #1f4f73; margin-top: 18px; }
+  .cover { text-align: center; padding-top: 55mm; page-break-after: always; }
+  .cover p { font-size: 14pt; }
+  .badge { display: inline-block; background: #e8f3fb; color: #145b86; padding: 6px 12px; border-radius: 5px; font-weight: bold; }
+  .box { background: #f4f8fb; border-left: 4px solid #2b83ba; padding: 10px 13px; margin: 12px 0; }
+  .warning { background: #fff8e6; border-left-color: #d99b16; }
+  code, pre { font-family: "Courier New", monospace; }
+  pre { background: #101827; color: #e5edf5; padding: 10px; white-space: pre-wrap; font-size: 8.5pt; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; }
+  th { background: #eaf3f9; }
+  .page-break { page-break-before: always; }
+  .small { color: #52606d; font-size: 9pt; }
+  .check { list-style: none; padding-left: 0; }
+  .check li { margin: 4px 0; }
+  .check li:before { content: "☐ "; font-size: 13pt; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div class="badge">SmartRoad S.O.S.</div>
+  <h1>Evidencia de entrega<br>CRUD Mes 1 / Sprint 2</h1>
+  <p>Node.js + Express + MySQL</p>
+  <p>Paquete local para dos compañeros</p>
+  <p class="small">No se sube automáticamente. Cada integrante debe crear su rama y completar las evidencias reales del equipo.</p>
+</section>
+
+<h2>1. Objetivo y alcance</h2>
+<p>El paquete demuestra el CRUD REST de las cinco entidades solicitadas y permite dividir la entrega entre dos compañeros sin alterar las rutas existentes del backend.</p>
+<table>
+  <tr><th>Componente</th><th>Ubicación</th></tr>
+  <tr><td>Backend principal</td><td><code>/home/oswal/SmartRoadSOS/backend</code></td></tr>
+  <tr><td>API local</td><td><code>http://127.0.0.1:4000</code></td></tr>
+  <tr><td>phpMyAdmin local</td><td><code>http://127.0.0.1:8080</code></td></tr>
+  <tr><td>Base de datos</td><td><code>smartroad_sos</code></td></tr>
+</table>
+<div class="box warning"><strong>Importante:</strong> las capturas del repositorio, commits y tablero Scrum deben tomarse de las cuentas reales. Este documento no fabrica evidencia ni reemplaza esas capturas.</div>
+
+<h2>2. Distribución del trabajo</h2>
+<table>
+  <tr><th>Parte</th><th>Responsable</th><th>Rama sugerida</th><th>Entregables</th></tr>
+  <tr><td>1</td><td>Compañero/a 1</td><td><code>evidencia/parte-1-colaboracion-cruds</code></td><td>Git, commits, Postman y CRUD funcional</td></tr>
+  <tr><td>2</td><td>Compañero/a 2</td><td><code>evidencia/parte-2-persistencia-scrum</code></td><td>Persistencia MySQL y Scrum</td></tr>
+</table>
+
+<h2 class="page-break">3. Parte 1 — Git y CRUD funcional</h2>
+<h3>3.1 Historial de commits</h3>
+<p>Repositorio central: <code>https://github.com/bandreswscanga-debug/SmartRoad</code>. Completar los nombres de los integrantes.</p>
+<ol>
+  <li>Abrir el repositorio central real.</li>
+  <li>Entrar a <strong>History / Commits</strong>.</li>
+  <li>Filtrar el último mes.</li>
+  <li>Capturar autores, fechas y mensajes de al menos dos integrantes.</li>
+  <li>Guardar como <code>01-git-historial-ultimo-mes.png</code>.</li>
+</ol>
+
+<h3>3.2 Colección Postman</h3>
+<p>Importar en Postman:</p>
+<pre>Entregables/evidencia-crud-mes1/postman/SmartRoad-SOS-CRUD.postman_collection.json
+Entregables/evidencia-crud-mes1/postman/SmartRoad-SOS-Local.postman_environment.json</pre>
+<p>La colección contiene 29 solicitudes: creación de la cadena, lecturas, actualizaciones, validaciones negativas y eliminación inversa.</p>
+<table>
+  <tr><th>Método</th><th>Ruta</th><th>Uso</th></tr>
+  <tr><td>GET</td><td><code>/api/conductor</code></td><td>Listar conductores</td></tr>
+  <tr><td>POST</td><td><code>/api/conductor</code></td><td>Crear conductor</td></tr>
+  <tr><td>PUT</td><td><code>/api/conductor/:id</code></td><td>Actualizar conductor</td></tr>
+  <tr><td>DELETE</td><td><code>/api/conductor/:id</code></td><td>Eliminar conductor</td></tr>
+</table>
+<p>Las mismas cinco operaciones existen para <code>vehiculo</code>, <code>dispositivo</code>, <code>evento</code> y <code>alerta</code>.</p>
+
+<h3>3.3 Ejecución recomendada</h3>
+<pre>cd /home/oswal/SmartRoadSOS/backend
+pnpm install
+pnpm db:setup
+pnpm start
+
+curl http://127.0.0.1:4000/api/health
+curl http://127.0.0.1:4000/api/conductor</pre>
+<ol>
+  <li>Crear conductor.</li>
+  <li>Crear vehículo con el ID del conductor.</li>
+  <li>Crear dispositivo con el ID del vehículo.</li>
+  <li>Crear evento con el ID del dispositivo.</li>
+  <li>Crear alerta con el ID del evento.</li>
+  <li>Consultar y actualizar cada entidad.</li>
+  <li>Probar campo faltante, FK inexistente, duplicado 1:1 y registro inexistente.</li>
+  <li>Eliminar en orden inverso.</li>
+</ol>
+<table>
+  <tr><th>Validación</th><th>HTTP</th></tr>
+  <tr><td>Campo NOT NULL faltante</td><td>400</td></tr>
+  <tr><td>FK inexistente</td><td>400</td></tr>
+  <tr><td>Registro inexistente</td><td>404</td></tr>
+  <tr><td>Duplicado</td><td>409</td></tr>
+  <tr><td>Creación correcta</td><td>201</td></tr>
+</table>
+
+<h2 class="page-break">4. Parte 2 — Persistencia y Scrum</h2>
+<h3>4.1 Persistencia</h3>
+<ol>
+  <li>Abrir <code>http://127.0.0.1:8080</code> o DBeaver.</li>
+  <li>Seleccionar <code>smartroad_sos</code>.</li>
+  <li>Capturar la tabla antes de insertar: <code>10-db-conductor-antes.png</code>.</li>
+  <li>Ejecutar en Postman el POST de conductor con un valor único, por ejemplo <code>EV260924A</code>.</li>
+  <li>Capturar la misma tabla después: <code>11-db-conductor-despues.png</code>.</li>
+  <li>Comprobar que el <code>documento</code> coincide exactamente.</li>
+</ol>
+<p>Si se creó la cadena completa, capturar también vehículo, dispositivo, evento y alerta con sus relaciones.</p>
+
+<h3>4.2 Scrum</h3>
+<p>Capturar el tablero real con la columna <strong>Terminado / Done</strong> visible y las historias de configuración base, login y CRUDs de Semanas 1 a 4 finalizadas.</p>
+<pre>13-scrum-tablero-terminado.png</pre>
+
+<h2>5. Ramas y commits</h2>
+<pre>git switch -c evidencia/parte-1-colaboracion-cruds
+# Parte 1
+
+git switch -c evidencia/parte-2-persistencia-scrum
+# Parte 2
+
+git status
+git add Entregables/evidencia-crud-mes1
+git commit -m "evidencia: agrega pruebas funcionales CRUD"</pre>
+<p>No incluir <code>.env</code>, contraseñas ni capturas de otros integrantes sin autorización. Este entorno no ejecuta <code>push</code>.</p>
+
+<h2>6. Checklist final</h2>
+<ul class="check">
+  <li>URL real del repositorio y commits de varios integrantes.</li>
+  <li>Postman demuestra GET, POST, PUT y DELETE.</li>
+  <li>FK inválida y campos faltantes devuelven 400.</li>
+  <li>JOIN de vehículo visible.</li>
+  <li>Captura de base antes y después.</li>
+  <li>Dato de Postman idéntico al dato persistido.</li>
+  <li>Tablero Scrum con historias en Terminado.</li>
+  <li>Commits realizados en las ramas de cada compañero.</li>
+</ul>
+
+<div class="box"><strong>Archivos fuente:</strong> <code>PARTE-1-COLABORACION-Y-CRUD.md</code>, <code>PARTE-2-PERSISTENCIA-Y-SCRUM.md</code>, <code>INSTRUCCIONES-RAMAS.md</code> y la colección Postman incluida en este directorio.</div>
+</body>
+</html>

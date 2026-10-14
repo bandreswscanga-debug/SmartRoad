@@ -1,0 +1,159 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 2329 >>
+stream
+BT /F1 10 Tf 48 792 Td 13 TL
+(SMARTROAD S.O.S. | EVIDENCIA DE ENTREGA) Tj T*
+(CRUD Mes 1 / Sprint 2 - Node.js + Express + MySQL) Tj T*
+() Tj T*
+(Este paquete queda local y no se sube automaticamente. Cada companero debe crear su rama y completar las evidencias reales del equipo.) Tj T*
+() Tj T*
+(1. ALCANCE) Tj T*
+(El CRUD singular esta integrado en /home/oswal/SmartRoadSOS/backend sin eliminar las rutas plurales existentes.) Tj T*
+(Repositorio central: https://github.com/bandreswscanga-debug/SmartRoad) Tj T*
+(Cadena: conductor -> vehiculo -> dispositivo -> evento -> alerta.) Tj T*
+(API local: http://127.0.0.1:4000) Tj T*
+(phpMyAdmin local: http://127.0.0.1:8080) Tj T*
+(Base de datos: smartroad_sos) Tj T*
+() Tj T*
+(2. REPARTO) Tj T*
+(Parte 1 - Companero/a 1) Tj T*
+(Rama: evidencia/parte-1-colaboracion-cruds) Tj T*
+(Responsabilidad: repositorio, historial de commits, Postman y CRUD funcional.) Tj T*
+() Tj T*
+(Parte 2 - Companero/a 2) Tj T*
+(Rama: evidencia/parte-2-persistencia-scrum) Tj T*
+(Responsabilidad: persistencia MySQL y tablero Scrum.) Tj T*
+() Tj T*
+(3. PARTE 1 - COLABORACION Y CRUD) Tj T*
+(3.1 Repositorio) Tj T*
+(Completar la URL real de GitHub o GitLab y los nombres de los integrantes.) Tj T*
+(Tomar una captura de History/Commits filtrada al ultimo mes.) Tj T*
+(Deben verse autores distintos, fechas y mensajes.) Tj T*
+(Archivo sugerido: 01-git-historial-ultimo-mes.png) Tj T*
+() Tj T*
+(3.2 Preparacion) Tj T*
+(cd /home/oswal/SmartRoadSOS/backend) Tj T*
+(pnpm install) Tj T*
+(pnpm db:setup) Tj T*
+(pnpm start) Tj T*
+(Comprobar: curl http://127.0.0.1:4000/api/health) Tj T*
+() Tj T*
+(3.3 Postman) Tj T*
+(Importar:) Tj T*
+(Entregables/evidencia-crud-mes1/postman/SmartRoad-SOS-CRUD.postman_collection.json) Tj T*
+(Entregables/evidencia-crud-mes1/postman/SmartRoad-SOS-Local.postman_environment.json) Tj T*
+(La coleccion contiene 29 solicitudes y las cinco operaciones CRUD para las cinco entidades.) Tj T*
+(Orden: crear conductor, vehiculo, dispositivo, evento y alerta; consultar; actualizar; validar; eliminar en orden inverso.) Tj T*
+() Tj T*
+(Endpoints:) Tj T*
+(GET    /api/conductor       POST   /api/conductor) Tj T*
+(GET    /api/conductor/:id   PUT    /api/conductor/:id) Tj T*
+(DELETE /api/conductor/:id) Tj T*
+(Repetir para /api/vehiculo, /api/dispositivo, /api/evento y /api/alerta.) Tj T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 2186 >>
+stream
+BT /F1 10 Tf 48 792 Td 13 TL
+() Tj T*
+(Validaciones esperadas:) Tj T*
+(- Campo NOT NULL faltante: 400) Tj T*
+(- FK inexistente: 400) Tj T*
+(- Registro inexistente: 404) Tj T*
+(- Duplicado o relacion 1:1 violada: 409) Tj T*
+(- Creacion correcta: 201) Tj T*
+(- GET, PUT y DELETE correctos: 200) Tj T*
+() Tj T*
+(Capturas sugeridas:) Tj T*
+(02-postman-get-conductor.png) Tj T*
+(03-postman-post-conductor.png) Tj T*
+(04-postman-put-conductor.png) Tj T*
+(05-postman-delete-conductor.png) Tj T*
+(06-postman-vehiculo-join.png) Tj T*
+(07-postman-fk-invalida-400.png) Tj T*
+(08-postman-cadena-completa.png) Tj T*
+() Tj T*
+(4. PARTE 2 - PERSISTENCIA Y SCRUM) Tj T*
+(4.1 Persistencia) Tj T*
+(Abrir http://127.0.0.1:8080 o DBeaver.) Tj T*
+(Seleccionar smartroad_sos y la tabla conductor.) Tj T*
+(Tomar una captura antes de insertar: 10-db-conductor-antes.png.) Tj T*
+(Ejecutar en Postman el POST de conductor con un valor unico, por ejemplo EV260924A.) Tj T*
+(Tomar una captura de la misma tabla despues: 11-db-conductor-despues.png.) Tj T*
+(El documento, nombre y demas datos deben coincidir exactamente con la peticion Postman.) Tj T*
+(Si se creo la cadena completa, capturar tambien vehiculo, dispositivo, evento y alerta.) Tj T*
+() Tj T*
+(4.2 Scrum) Tj T*
+(Abrir Jira, Trello o GitHub Projects real.) Tj T*
+(Capturar el tablero con la columna Terminado/Done visible.) Tj T*
+(Deben aparecer terminadas las historias de configuracion base, login y CRUD de Semanas 1 a 4.) Tj T*
+(Archivo sugerido: 13-scrum-tablero-terminado.png) Tj T*
+() Tj T*
+(5. RAMAS Y COMMITS) Tj T*
+(git switch -c evidencia/parte-1-colaboracion-cruds) Tj T*
+(git switch -c evidencia/parte-2-persistencia-scrum) Tj T*
+(git status) Tj T*
+(git add Entregables/evidencia-crud-mes1) Tj T*
+(git commit -m "evidencia: agrega pruebas funcionales CRUD") Tj T*
+(No incluir .env ni contrasenas. Este entorno no ejecuta push.) Tj T*
+() Tj T*
+(6. CHECKLIST FINAL) Tj T*
+([ ] URL real del repositorio y commits de varios integrantes.) Tj T*
+([ ] Postman demuestra GET, POST, PUT y DELETE.) Tj T*
+([ ] FK invalida y campos faltantes devuelven 400.) Tj T*
+([ ] JOIN de vehiculo visible.) Tj T*
+([ ] Captura de base antes y despues.) Tj T*
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 372 >>
+stream
+BT /F1 10 Tf 48 792 Td 13 TL
+([ ] Dato Postman identico al dato persistido.) Tj T*
+([ ] Tablero Scrum con historias en Terminado.) Tj T*
+([ ] Commits realizados en las ramas de cada companero.) Tj T*
+() Tj T*
+(Archivos fuente: PARTE-1-COLABORACION-Y-CRUD.md, PARTE-2-PERSISTENCIA-Y-SCRUM.md, INSTRUCCIONES-RAMAS.md, CHECKLIST-EVIDENCIA.md y la coleccion Postman.) Tj T*
+ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000203 00000 n 
+0000000329 00000 n 
+0000002710 00000 n 
+0000002836 00000 n 
+0000005074 00000 n 
+0000005200 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+5623
+%%EOF

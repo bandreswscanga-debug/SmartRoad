@@ -1,10 +1,6 @@
-import { Suspense, lazy, useState } from 'react';
 import CameraDrowsiness from '../components/CameraDrowsiness';
 
-const FaceApiCamera = lazy(() => import('../components/FaceApiCamera'));
-
 export default function Camara() {
-  const [modo, setModo] = useState('mediapipe');
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div>
@@ -14,31 +10,7 @@ export default function Camara() {
           el Monitoreo queda solo para telemetría y flota.
         </p>
       </div>
-      <div className="flex gap-2">
-        <button
-          className={modo === 'mediapipe' ? 'btn-primary' : 'btn-ghost'}
-          onClick={() => setModo('mediapipe')}
-        >
-          Modo MediaPipe
-        </button>
-        <button
-          className={modo === 'faceapi' ? 'btn-primary' : 'btn-ghost'}
-          onClick={() => setModo('faceapi')}
-        >
-          Modo alterno face-api
-        </button>
-      </div>
-      {modo === 'mediapipe' ? (
-        <CameraDrowsiness />
-      ) : (
-        <Suspense
-          fallback={
-            <div className="card p-5 text-xs text-muted">Cargando motor alterno…</div>
-          }
-        >
-          <FaceApiCamera />
-        </Suspense>
-      )}
+      <CameraDrowsiness />
     </div>
   );
 }

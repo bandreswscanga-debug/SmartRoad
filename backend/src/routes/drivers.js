@@ -62,7 +62,7 @@ module.exports = (store) => {
     const documento = String(req.body.documento).trim();
     const email = String(req.body.email).trim().toLowerCase();
     const placa = String(req.body.placa).trim().toUpperCase();
-    const { telefono, licencia, empresa } = req.body;
+    const { telefono, licencia, empresa, tipo_vehiculo, tipo_sangre } = req.body;
 
     if (await store.findConductorByDocumento(documento)) {
       return res.status(409).json({ error: 'La cédula ya está registrada' });
@@ -91,7 +91,9 @@ module.exports = (store) => {
         placa,
         usuario_id: user.id,
         licencia: licencia ? String(licencia).trim() : null,
-        empresa: empresa ? String(empresa).trim() : null
+        empresa: empresa ? String(empresa).trim() : null,
+        tipo_vehiculo: tipo_vehiculo ? String(tipo_vehiculo).trim() : null,
+        tipo_sangre: tipo_sangre ? String(tipo_sangre).trim().toUpperCase() : null
       });
       // Vehículo propio automático: así el conductor entra a la app con datos reales.
       let vehicle = null;
@@ -145,6 +147,8 @@ module.exports = (store) => {
     if (req.body.placa !== undefined) patch.placa = String(req.body.placa).trim().toUpperCase();
     if (req.body.licencia !== undefined) patch.licencia = req.body.licencia ? String(req.body.licencia).trim() : null;
     if (req.body.empresa !== undefined) patch.empresa = req.body.empresa ? String(req.body.empresa).trim() : null;
+    if (req.body.tipo_vehiculo !== undefined) patch.tipo_vehiculo = req.body.tipo_vehiculo ? String(req.body.tipo_vehiculo).trim() : null;
+    if (req.body.tipo_sangre !== undefined) patch.tipo_sangre = req.body.tipo_sangre ? String(req.body.tipo_sangre).trim().toUpperCase() : null;
 
     // Duplicados: se excluye el propio registro.
     if (patch.documento && patch.documento !== current.documento) {

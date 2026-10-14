@@ -1,0 +1,1046 @@
+{
+  "info": {
+    "_postman_id": "smartroad-sos-crud-evidence",
+    "name": "SmartRoad S.O.S. - Evidencia CRUD Mes 1",
+    "description": "Colección local para demostrar GET, POST, PUT y DELETE de las cinco entidades. Las escrituras exigen rol admin: la colección inicia sesión automáticamente y envía el JWT en cada petición. Alternativa sin autenticación: arrancar el backend con CRUD_REQUIRE_AUTH=0.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwtToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('jwtToken')) {",
+          "  const res = await pm.sendRequest({",
+          "    url: pm.variables.replaceIn('{{baseUrl}}/api/auth/login'),",
+          "    method: 'POST',",
+          "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+          "    body: { mode: 'raw', raw: JSON.stringify({ email: 'admin@smartroad-demo.com', password: 'Admin123' }) }",
+          "  });",
+          "  const body = res.json();",
+          "  if (body.token) pm.collectionVariables.set('jwtToken', body.token);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwtToken",
+      "value": ""
+    },
+    {
+      "key": "conductorId",
+      "value": ""
+    },
+    {
+      "key": "vehiculoId",
+      "value": ""
+    },
+    {
+      "key": "dispositivoId",
+      "value": ""
+    },
+    {
+      "key": "eventoId",
+      "value": ""
+    },
+    {
+      "key": "alertaId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Crear cadena",
+      "item": [
+        {
+          "name": "POST conductor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('POST conductor - 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('conductorId', body.datos.id_conductor);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Conductor evidencia {{unique_tag}}\",\n  \"documento\": \"DOC-{{unique_tag}}\",\n  \"telefono\": \"3000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST vehiculo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('POST vehiculo - 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('vehiculoId', body.datos.id_vehiculo);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"PLACA-{{placa_tag}}\",\n  \"tipo\": \"Automóvil\",\n  \"id_conductor\": \"{{conductorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehiculo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST dispositivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('POST dispositivo - 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('dispositivoId', body.datos.id_dispositivo);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_sensor\": \"Cámara IA\",\n  \"id_vehiculo\": \"{{vehiculoId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispositivo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('POST evento - 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('eventoId', body.datos.id_evento);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_evento\": \"Somnolencia\",\n  \"nivel_riesgo\": \"alto\",\n  \"id_dispositivo\": \"{{dispositivoId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/evento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST alerta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('POST alerta - 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('alertaId', body.datos.id_alerta);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_alerta\": \"SMS\",\n  \"id_evento\": \"{{eventoId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "alerta"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Leer y verificar JOIN",
+      "item": [
+        {
+          "name": "GET conductores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET conductores - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET conductor por id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET conductor por id - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/{{conductorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor",
+                "{{conductorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET vehiculos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET vehiculos - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehiculo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET vehiculo por id con JOIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET vehiculo por id con JOIN - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo/{{vehiculoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehiculo",
+                "{{vehiculoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET dispositivos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET dispositivos - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispositivo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET dispositivo por id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET dispositivo por id - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo/{{dispositivoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispositivo",
+                "{{dispositivoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET eventos - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET evento por id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET evento por id - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evento/{{eventoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evento",
+                "{{eventoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET alertas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET alertas - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "alerta"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET alerta por id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET alerta por id - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta/{{alertaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "alerta",
+                "{{alertaId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Actualizar",
+      "item": [
+        {
+          "name": "PUT conductor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PUT conductor - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Conductor actualizado {{unique_tag}}\",\n  \"documento\": \"DOC-{{unique_tag}}\",\n  \"telefono\": \"3000000001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/{{conductorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor",
+                "{{conductorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT vehiculo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PUT vehiculo - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"PLACA-{{placa_tag}}\",\n  \"tipo\": \"Camioneta\",\n  \"id_conductor\": \"{{conductorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo/{{vehiculoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehiculo",
+                "{{vehiculoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT dispositivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PUT dispositivo - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_sensor\": \"Cámara IA PRO\",\n  \"id_vehiculo\": \"{{vehiculoId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo/{{dispositivoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispositivo",
+                "{{dispositivoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PUT evento - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_evento\": \"Somnolencia alta\",\n  \"nivel_riesgo\": \"critico\",\n  \"id_dispositivo\": \"{{dispositivoId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/evento/{{eventoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evento",
+                "{{eventoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT alerta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PUT alerta - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_alerta\": \"Llamada\",\n  \"id_evento\": \"{{eventoId}}\",\n  \"estado\": \"atendida\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta/{{alertaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "alerta",
+                "{{alertaId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Validaciones negativas",
+      "item": [
+        {
+          "name": "Validación - campo NOT NULL faltante (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validación - campo NOT NULL faltante (400) - 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Incompleto\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validación - FK inexistente (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validación - FK inexistente (400) - 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"BAD-{{placa_tag}}\",\n  \"tipo\": \"Bus\",\n  \"id_conductor\": 999999999\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehiculo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validación - dispositivo duplicado (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validación - dispositivo duplicado (409) - 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_sensor\": \"Duplicado\",\n  \"id_vehiculo\": \"{{vehiculoId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispositivo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validación - registro inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validación - registro inexistente (404) - 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor",
+                "999999999"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Eliminar en orden inverso",
+      "item": [
+        {
+          "name": "DELETE alerta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DELETE alerta - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerta/{{alertaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "alerta",
+                "{{alertaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DELETE evento - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/evento/{{eventoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "evento",
+                "{{eventoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE dispositivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DELETE dispositivo - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispositivo/{{dispositivoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispositivo",
+                "{{dispositivoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE vehiculo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DELETE vehiculo - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehiculo/{{vehiculoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehiculo",
+                "{{vehiculoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE conductor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DELETE conductor - 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conductor/{{conductorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "conductor",
+                "{{conductorId}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

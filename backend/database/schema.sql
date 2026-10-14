@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS conductores (
   email VARCHAR(150) NULL UNIQUE,
   placa VARCHAR(12) NULL,
   usuario_id INT NULL UNIQUE,
+  tipo_vehiculo VARCHAR(50) NULL,
+  tipo_sangre VARCHAR(5) NULL,
   licencia VARCHAR(10),
   empresa VARCHAR(120),
   jornada_horas DECIMAL(4,2) DEFAULT 0,

@@ -1,0 +1,189 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1273 >>
+stream
+BT /F1 10 Tf 48 792 Td 13 TL
+(SMARTROAD S.O.S. - SmartRoad S.O.S. - Entrega de hoy) Tj T*
+() Tj T*
+(Fecha: 24 de septiembre de 2026) Tj T*
+(Alcance: CRUD backend Node.js + Express + MySQL) Tj T*
+() Tj T*
+(1. Repositorio) Tj T*
+() Tj T*
+(* GitHub: https://github.com/bandreswscanga-debug/SmartRoad) Tj T*
+(* Commit del CRUD: 66d71fd) Tj T*
+(* Rama base: main) Tj T*
+() Tj T*
+(2. Backend y CRUD) Tj T*
+() Tj T*
+(El CRUD singular esta integrado en:) Tj T*
+() Tj T*
+(/home/oswal/SmartRoadSOS/backend) Tj T*
+() Tj T*
+(Cadena de entidades:) Tj T*
+() Tj T*
+(conductor -> vehiculo -> dispositivo -> evento -> alerta) Tj T*
+() Tj T*
+(Endpoints para cada entidad:) Tj T*
+() Tj T*
+(GET    /api/<tabla>) Tj T*
+(GET    /api/<tabla>/:id) Tj T*
+(POST   /api/<tabla>) Tj T*
+(PUT    /api/<tabla>/:id) Tj T*
+(DELETE /api/<tabla>/:id) Tj T*
+() Tj T*
+(Entidades:) Tj T*
+() Tj T*
+(/api/conductor) Tj T*
+(/api/vehiculo) Tj T*
+(/api/dispositivo) Tj T*
+(/api/evento) Tj T*
+(/api/alerta) Tj T*
+() Tj T*
+(Validaciones:) Tj T*
+() Tj T*
+(* Campos NOT NULL: 400.) Tj T*
+(* FK inexistente: 400.) Tj T*
+(* Registro inexistente: 404.) Tj T*
+(* Duplicado o relacion 1:1: 409.) Tj T*
+(* Creacion correcta: 201.) Tj T*
+(* GET, PUT y DELETE correctos: 200.) Tj T*
+() Tj T*
+(3. Base de datos) Tj T*
+() Tj T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1277 >>
+stream
+BT /F1 10 Tf 48 792 Td 13 TL
+(La base utilizada es:) Tj T*
+() Tj T*
+(smartroad_sos) Tj T*
+() Tj T*
+(El esquema CRUD esta en:) Tj T*
+() Tj T*
+(/home/oswal/SmartRoadSOS/backend/database/crud_schema.sql) Tj T*
+() Tj T*
+(El gestor local esta disponible en:) Tj T*
+() Tj T*
+(http://127.0.0.1:8080) Tj T*
+() Tj T*
+(4. Division de la entrega entre tres companeros) Tj T*
+() Tj T*
+(Companero/a 1 - Git y evidencia funcional) Tj T*
+() Tj T*
+(Rama sugerida:) Tj T*
+() Tj T*
+(evidencia/parte-1-colaboracion-cruds) Tj T*
+() Tj T*
+(Responsabilidades:) Tj T*
+() Tj T*
+(* Historial de commits.) Tj T*
+(* Coleccion Postman.) Tj T*
+(* Evidencia de GET, POST, PUT y DELETE.) Tj T*
+(* Validacion de FK y campos obligatorios.) Tj T*
+() Tj T*
+(Companero/a 2 - Persistencia) Tj T*
+() Tj T*
+(Rama sugerida:) Tj T*
+() Tj T*
+(evidencia/parte-2-persistencia-scrum) Tj T*
+() Tj T*
+(Responsabilidades:) Tj T*
+() Tj T*
+(* Captura de la tabla antes de insertar.) Tj T*
+(* Crear un registro desde Postman.) Tj T*
+(* Captura de la misma tabla despues.) Tj T*
+(* Confirmar que el dato de Postman coincide con MySQL.) Tj T*
+() Tj T*
+(Companero/a 3 - Scrum y cierre de calidad) Tj T*
+() Tj T*
+(Rama sugerida:) Tj T*
+() Tj T*
+(evidencia/parte-3-scrum-calidad) Tj T*
+() Tj T*
+(Responsabilidades:) Tj T*
+() Tj T*
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1192 >>
+stream
+BT /F1 10 Tf 48 792 Td 13 TL
+(* Captura del tablero Scrum.) Tj T*
+(* Verificar historias en Terminado.) Tj T*
+(* Revisar checklist de evidencia.) Tj T*
+(* Verificar que el repositorio no incluya archivos privados.) Tj T*
+() Tj T*
+(5. Evidencias que debe entregar el equipo) Tj T*
+() Tj T*
+(* Enlace del repositorio.) Tj T*
+(* Historial de commits de varios integrantes.) Tj T*
+(* Coleccion Postman o video de maximo 3 minutos.) Tj T*
+(* Dos capturas de la base de datos: antes y despues.) Tj T*
+(* Captura del tablero Scrum con historias terminadas.) Tj T*
+() Tj T*
+(6. Comandos de ejecucion) Tj T*
+() Tj T*
+(SMARTROAD S.O.S. - Backend) Tj T*
+(cd /home/oswal/SmartRoadSOS/backend) Tj T*
+(pnpm install) Tj T*
+(pnpm db:setup) Tj T*
+(pnpm test) Tj T*
+(pnpm start) Tj T*
+() Tj T*
+(SMARTROAD S.O.S. - API) Tj T*
+(curl http://localhost:4000/api/health) Tj T*
+(curl http://localhost:4000/api/conductor) Tj T*
+() Tj T*
+(7. Enlaces) Tj T*
+() Tj T*
+(API: http://localhost:4000) Tj T*
+(Health: http://localhost:4000/api/health) Tj T*
+(phpMyAdmin: http://127.0.0.1:8080) Tj T*
+() Tj T*
+(Nota final) Tj T*
+() Tj T*
+(Este documento contiene unicamente la entrega actual del CRUD y sus evidencias.) Tj T*
+ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000203 00000 n 
+0000000329 00000 n 
+0000001654 00000 n 
+0000001780 00000 n 
+0000003109 00000 n 
+0000003235 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+4479
+%%EOF
