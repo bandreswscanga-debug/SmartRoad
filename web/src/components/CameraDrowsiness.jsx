@@ -53,6 +53,7 @@ export default function CameraDrowsiness() {
   const [level, setLevel] = useState('NORMAL');
   const [metrics, setMetrics] = useState({ ear: null, perclos: 0, streak: 0, threshold: null, calFrame: 0, face: false });
   const [alarmOn, setAlarmOn] = useState(false);
+  const [serverIa, setServerIa] = useState({ busy: false, result: null });
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -116,6 +117,29 @@ export default function CameraDrowsiness() {
     calibStartRef.current = Date.now();
     setMetrics((m) => ({ ...m, calFrame: 0 }));
     pushToast('Calibración reiniciada: mire al frente con los ojos abiertos', 'info');
+  }
+
+  // IA por servidor: captura el cuadro actual y lo analiza Groq (visión).
+  // No usa el modelo local: funciona aunque la calibración local falle.
+  async function analyzeWithServer() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) {
+      pushToast('Primero inicie la cámara', 'warning');
+      return;
+    }
+    setServerIa({ busy: true, result: null });
+    try {
+      const tmp = document.createElement('canvas');
+      tmp.width = video.videoWidth;
+      tmp.height = video.videoHeight;
+      tmp.getContext('2d').drawImage(video, 0, 0);
+      const dataUrl = tmp.toDataURL('image/jpeg', 0.7);
+      const data = await api.iaAnalizarImagen(dataUrl, '¿El conductor muestra signos de somnolencia? Responda nivel y acción.');
+      setServerIa({ busy: false, result: data.analisis });
+    } catch (err) {
+      setServerIa({ busy: false, result: null });
+      pushToast(err.message, 'critical');
+    }
   }
 
   async function notify(nivel) {
@@ -474,6 +498,23 @@ export default function CameraDrowsiness() {
             <div className="rounded-lg border border-border-soft bg-surface px-3.5 py-2.5 font-mono text-[10px] leading-relaxed text-faint">
               diag · video {metrics.video || '—'} · cuadros {metrics.frames || 0} · rostro {metrics.face ? 'SÍ' : 'no'}{metrics.frozen ? ' · CONGELADA' : ''}{metrics.inferMs != null ? ` · IA ${metrics.inferMs} ms` : ''}
               {metrics.detectError ? ` · error: ${metrics.detectError}` : ''}
+            </div>
+
+            <div className="rounded-xl border border-info/30 bg-info/5 p-3.5">
+              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-widest text-info">
+                IA por servidor (Groq visión)
+              </p>
+              <button className="btn-primary w-full" disabled={serverIa.busy} onClick={analyzeWithServer}>
+                {serverIa.busy ? 'Analizando foto…' : 'Analizar foto actual con Groq'}
+              </button>
+              {serverIa.result && (
+                <p className="mt-2 rounded-lg border border-border-soft bg-surface-2 px-3 py-2 text-xs leading-relaxed">
+                  {serverIa.result}
+                </p>
+              )}
+              <p className="mt-1.5 text-[10px] text-faint">
+                No usa el modelo local. Requiere GROQ_API_KEY en el backend.
+              </p>
             </div>
 
             {alarmOn && (
