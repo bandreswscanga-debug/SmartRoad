@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import CameraDrowsiness from '../components/CameraDrowsiness';
-import FaceApiCamera from '../components/FaceApiCamera';
+
+const FaceApiCamera = lazy(() => import('../components/FaceApiCamera'));
 
 export default function Camara() {
   const [modo, setModo] = useState('mediapipe');
@@ -27,7 +28,17 @@ export default function Camara() {
           Modo alterno face-api
         </button>
       </div>
-      {modo === 'mediapipe' ? <CameraDrowsiness /> : <FaceApiCamera />}
+      {modo === 'mediapipe' ? (
+        <CameraDrowsiness />
+      ) : (
+        <Suspense
+          fallback={
+            <div className="card p-5 text-xs text-muted">Cargando motor alterno…</div>
+          }
+        >
+          <FaceApiCamera />
+        </Suspense>
+      )}
     </div>
   );
 }

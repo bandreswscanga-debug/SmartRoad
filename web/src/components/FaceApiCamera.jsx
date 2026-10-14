@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import * as faceapi from 'face-api.js';
 import { useApp } from '../store/AppContext';
 import { api } from '../api/client';
 import { Camera, Video, VideoOff, Eye, Activity, Volume2, VolumeX, Loader2, ShieldAlert, Radio, ScanSearch } from 'lucide-react';
 import { createDrowsinessDetector } from '../utils/drowsiness';
 import { playAlarm, stopAlarm, playChime } from '../utils/alarm';
+
+// face-api.js se carga diferido (import dinámico): si el módulo fallara,
+// no tumba la app completa, solo este modo.
+let faceapi = null;
+async function loadFaceApi() {
+  if (!faceapi) {
+    const mod = await import('face-api.js');
+    faceapi = mod.default || mod;
+  }
+  return faceapi;
+}
 
 const MODEL_URL = '/models';
 const CALIB_FRAMES = 30;
@@ -14,15 +24,16 @@ let modelsPromise = null;
 async function ensureModels() {
   if (!modelsPromise) {
     modelsPromise = (async () => {
+      const fa = await loadFaceApi();
       // CPU puro: funciona sin WebGL/GPU (equipos donde MediaPipe no corre).
       try {
-        faceapi.tf.setBackend('cpu');
-        await faceapi.tf.ready();
+        fa.tf.setBackend('cpu');
+        await fa.tf.ready();
       } catch (_e) {
         /* sigue con el backend por defecto */
       }
-      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await fa.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await fa.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
     })();
   }
   return modelsPromise;
@@ -297,9 +308,10 @@ export default function FaceApiCamera() {
         lastVideoTime = video.currentTime;
         setMetrics((m) => ({ ...m, frozen: false }));
         try {
+          const fa = await loadFaceApi();
           const t0 = performance.now();
-          const det = await faceapi
-            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
+          const det = await fa
+            .detectSingleFace(video, new fa.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
             .withFaceLandmarks();
           const inferMs = Math.round(performance.now() - t0);
           paint(g, det);
