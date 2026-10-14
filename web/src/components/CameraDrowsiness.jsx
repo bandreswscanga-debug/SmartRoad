@@ -79,6 +79,15 @@ export default function CameraDrowsiness() {
     phaseRef.current = phase;
   }, [phase]);
 
+  useEffect(() => {
+    if (phase !== 'calibrating' && phase !== 'running') return;
+    const video = videoRef.current;
+    if (video && streamRef.current && video.srcObject !== streamRef.current) {
+      video.srcObject = streamRef.current;
+      video.play().catch(() => {});
+    }
+  }, [phase]);
+
   function stopEverything() {
     cancelAnimationFrame(rafRef.current);
     stopAlarm();
@@ -155,9 +164,7 @@ export default function CameraDrowsiness() {
         return;
       }
       streamRef.current = stream;
-      const video = videoRef.current;
-      video.srcObject = stream;
-      await video.play().catch(() => {});
+      setPhase('calibrating');
       await getLandmarker();
       if (!mountedRef.current) return;
 
@@ -165,7 +172,6 @@ export default function CameraDrowsiness() {
       calibEarsRef.current = [];
       alarmStateRef.current = { on: false };
       setAlarmOn(false);
-      setPhase('calibrating');
       pushToast('Modo de prueba: calibrando la IA con sus ojos (mire al frente, sin pestañear), luego mostrando el video', 'info');
       runLoop();
     } catch (err) {
