@@ -143,6 +143,25 @@ class MemoryStore {
     return this.vehicles.find((v) => v.codigo === code) || null;
   }
 
+  async createVehicle(data) {
+    const row = {
+      id: this.next('vehicle'),
+      estado: 'DETENIDO',
+      riesgo: 'BAJO',
+      lat: 4.6097,
+      lng: -74.0817,
+      velocidad: 0,
+      bateria: 100,
+      imei: `SRD-${Date.now().toString().slice(-6)}`,
+      ultima_actividad: new Date().toISOString(),
+      ...data
+    };
+    this.vehicles.push(row);
+    const driver = data.conductor_id ? this.drivers.find((d) => d.id === Number(data.conductor_id)) : null;
+    if (driver) row.conductor_nombre = driver.nombre;
+    return { ...row };
+  }
+
   async updateVehicle(id, patch) {
     const v = this.vehicles.find((x) => x.id === Number(id));
     if (!v) return null;
@@ -448,6 +467,20 @@ class MySqlStore {
   async getVehicleByCode(code) {
     const rows = await this.q('SELECT v.*, d.nombre AS conductor_nombre FROM vehiculos v LEFT JOIN conductores d ON d.id = v.conductor_id WHERE v.codigo = ? LIMIT 1', [code]);
     return this.vehicleShape(this.row(rows));
+  }
+
+  async createVehicle(data) {
+    await this.q(
+      'INSERT INTO vehiculos (codigo, nombre, placa, tipo, modelo, conductor_id, ruta, estado, riesgo, lat, lng, velocidad, bateria, imei) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        data.codigo, data.nombre || null, data.placa, data.tipo || 'Particular',
+        data.modelo || new Date().getFullYear(), data.conductor_id || null, data.ruta || 'Sin ruta',
+        data.estado || 'DETENIDO', data.riesgo || 'BAJO',
+        data.lat ?? 4.6097, data.lng ?? -74.0817, data.velocidad ?? 0, data.bateria ?? 100,
+        data.imei || `SRD-${Date.now().toString().slice(-6)}`
+      ]
+    );
+    return this.getVehicleByCode(data.codigo);
   }
 
   async updateVehicle(id, patch) {

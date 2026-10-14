@@ -120,6 +120,23 @@ test('perfil ignora correo y clave aunque lleguen', async () => {
   assert.equal(json.conductor.telefono, '3000000001');
 });
 
+test('registrado nuevo entra con vehiculo propio asignado', async () => {
+  const created = await request('/api/drivers', {
+    method: 'POST', token: adminToken,
+    body: { nombre: 'Con Vehiculo', documento: '888999000', email: 'convehiculo@smartroad-demo.com', placa: 'CVH-001' }
+  });
+  assert.equal(created.status, 201);
+  assert.ok(created.json.vehicle);
+  assert.equal(created.json.vehicle.conductor_id, created.json.driver.id);
+  const login = await request('/api/auth/login', {
+    method: 'POST', body: { email: 'convehiculo@smartroad-demo.com', password: '888999000' }
+  });
+  assert.equal(login.status, 200);
+  const seen = await request('/api/vehicles', { token: login.json.token });
+  assert.equal(seen.json.vehicles.length, 1);
+  assert.equal(seen.json.vehicles[0].id, created.json.vehicle.id);
+});
+
 test('cambio de clave y reingreso con la nueva', async () => {
   const ch = await request('/api/auth/change-password', {
     method: 'POST', token: conductorToken,

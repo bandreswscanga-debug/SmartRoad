@@ -93,11 +93,30 @@ module.exports = (store) => {
         licencia: licencia ? String(licencia).trim() : null,
         empresa: empresa ? String(empresa).trim() : null
       });
+      // Vehículo propio automático: así el conductor entra a la app con datos reales.
+      let vehicle = null;
+      try {
+        const existing = await store.listVehicles();
+        let n = 1;
+        const used = new Set(existing.map((v) => v.codigo));
+        while (used.has(`TRK-${String(n).padStart(3, '0')}`)) n += 1;
+        vehicle = await store.createVehicle({
+          codigo: `TRK-${String(n).padStart(3, '0')}`,
+          nombre: `Vehículo ${placa}`,
+          placa,
+          tipo: req.body.tipo_vehiculo ? String(req.body.tipo_vehiculo).trim() : 'Particular',
+          conductor_id: driver.id,
+          ruta: empresa ? String(empresa).trim() : 'Sin ruta'
+        });
+      } catch (_vehErr) {
+        /* el registro no se pierde si el vehículo falla */
+      }
       // Correo de bienvenida: si falla, se avisa al admin sin perder el registro.
       const correo = await sendWelcomeEmail({ to: email, nombre, cedula: documento });
       res.status(201).json({
         driver,
         user: publicUser(user),
+        vehicle,
         email_enviado: correo.enviado,
         ...(correo.enviado
           ? { email_via: correo.via, ...(correo.preview ? { email_preview: correo.preview } : {}) }
