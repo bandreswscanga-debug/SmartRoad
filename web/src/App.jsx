@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
+import Perfil from './pages/Perfil';
 import Dashboard from './pages/Dashboard';
 import Monitoreo from './pages/Monitoreo';
 import Historial from './pages/Historial';
@@ -46,6 +47,7 @@ export default function App() {
                 <Route path="alertas" element={<Alertas />} />
                 <Route path="app-movil" element={<AppMovil />} />
                 <Route path="configuracion" element={<Configuracion />} />
+                <Route path="perfil" element={<Perfil />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

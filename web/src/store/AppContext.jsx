@@ -167,6 +167,13 @@ export function AppProvider({ children }) {
     return data.user;
   }, []);
 
+  const updateProfile = useCallback(async (body) => {
+    const data = await api.updateProfile(body);
+    localStorage.setItem('srs_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(() => {
     stopAlarm();
     localStorage.removeItem('srs_token');
@@ -222,13 +229,14 @@ export function AppProvider({ children }) {
       login,
       logout,
       register,
+      updateProfile,
       refreshAll,
       actionAlert,
       dismissCritical,
       pushToast,
       dismissToast
     }),
-    [token, user, summary, vehicles, activeAlerts, config, latestEvents, criticalAlert, connected, serverUptime, toasts, theme, toggleTheme, login, logout, register, refreshAll, actionAlert, dismissCritical, pushToast, dismissToast]
+    [token, user, summary, vehicles, activeAlerts, config, latestEvents, criticalAlert, connected, serverUptime, toasts, theme, toggleTheme, login, logout, register, updateProfile, refreshAll, actionAlert, dismissCritical, pushToast, dismissToast]
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

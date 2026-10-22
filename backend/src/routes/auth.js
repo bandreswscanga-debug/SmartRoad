@@ -92,5 +92,22 @@ module.exports = (store, ctx = {}) => {
     res.json({ user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } });
   });
 
+  router.put('/perfil', requireAuth, async (req, res) => {
+    const { nombre, email, telefono_contacto } = req.body || {};
+    try {
+      const user = await store.updateUser(req.user.id, {
+        nombre: nombre ? String(nombre).trim() : undefined,
+        email: email ? String(email).trim() : undefined,
+        telefono_contacto: telefono_contacto !== undefined ? String(telefono_contacto).trim() : undefined
+      });
+      if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+      tracer?.trace('INFO', `[AUTH] Perfil actualizado de "${user.email}".`, null);
+      res.json({ user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol, tipo_persona: user.tipo_persona, telefono_contacto: user.telefono_contacto } });
+    } catch (err) {
+      if (err.status === 409) return res.status(409).json({ error: err.message });
+      throw err;
+    }
+  });
+
   return router;
 };

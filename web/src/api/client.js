@@ -25,6 +25,7 @@ export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (userData) => request('/auth/registro', { method: 'POST', body: JSON.stringify(userData) }),
   me: () => request('/auth/me'),
+  updateProfile: (body) => request('/auth/perfil', { method: 'PUT', body: JSON.stringify(body) }),
   summary: () => request('/dashboard/summary'),
   fatigue: (hours = 24) => request(`/dashboard/fatigue?hours=${hours}`),
   recentAlerts: () => request('/dashboard/recent-alerts'),

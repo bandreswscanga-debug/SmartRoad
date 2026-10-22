@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Radar, History, BarChart3, Users, BellRing, Smartphone, Settings, ShieldAlert
+  LayoutDashboard, Radar, History, BarChart3, Users, BellRing, Smartphone, Settings, ShieldAlert, UserCircle2
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 
@@ -12,7 +12,8 @@ const NAV = [
   { to: '/conductores', label: 'Conductores', icon: Users },
   { to: '/alertas', label: 'Alertas', icon: BellRing },
   { to: '/app-movil', label: 'App Móvil', icon: Smartphone },
-  { to: '/configuracion', label: 'Configuración', icon: Settings }
+  { to: '/configuracion', label: 'Configuración', icon: Settings },
+  { to: '/perfil', label: 'Perfil', icon: UserCircle2 }
 ];
 
 export default function Sidebar({ open, onClose }) {

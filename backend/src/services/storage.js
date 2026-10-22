@@ -63,6 +63,15 @@ class MemoryStore {
     return { ...row };
   }
 
+  async updateUser(id, patch) {
+    const idx = this.users.findIndex((u) => u.id === Number(id));
+    if (idx === -1) return null;
+    const updated = { ...this.users[idx], ...patch };
+    if (patch.email) updated.email = String(patch.email).toLowerCase();
+    this.users[idx] = updated;
+    return { ...updated };
+  }
+
   async listVehicles() {
     return this.vehicles.map((v) => ({ ...v })).sort((a, b) => a.codigo.localeCompare(b.codigo));
   }
@@ -272,6 +281,27 @@ class MySqlStore {
       [userData.nombre, String(userData.email).toLowerCase(), userData.password_hash, userData.rol || 'conductor', userData.tipo_persona || 'persona_natural', userData.telefono_contacto || null]
     );
     return this.getUserById(res.insertId);
+  }
+
+  async updateUser(id, patch) {
+    const allowed = ['nombre', 'email', 'tipo_persona', 'telefono_contacto'];
+    const keys = Object.keys(patch).filter((k) => allowed.includes(k) && patch[k] !== undefined);
+    if (!keys.length) return this.getUserById(id);
+    if (keys.includes('email')) {
+      const existe = await this.findUserByEmail(String(patch.email));
+      if (existe && existe.id !== Number(id)) {
+        const err = new Error('El correo electrónico ya está registrado');
+        err.status = 409;
+        throw err;
+      }
+    }
+    const vals = keys.map((k) => patch[k]);
+    vals.push(Number(id));
+    await this.q(
+      `UPDATE usuarios SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`,
+      vals.map((v) => (v === undefined ? null : v))
+    );
+    return this.getUserById(id);
   }
 
   vehicleShape(v) {

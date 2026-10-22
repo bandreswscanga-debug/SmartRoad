@@ -4,7 +4,7 @@ import { useApp } from '../store/AppContext';
 import { ShieldAlert, Eye, EyeOff, AlertCircle, Loader2, Radio } from 'lucide-react';
 
 export default function Login() {
-  const { login } = useApp();
+  const { login, pushToast } = useApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState('bandreswscanga@hgmail.com');
   const [password, setPassword] = useState('5304566767');
@@ -113,6 +113,17 @@ export default function Login() {
               className="text-danger underline underline-offset-4 hover:text-danger-bright"
             >
               Regístrate
+            </button>
+          </p>
+
+          <p className="text-center text-[11px] text-faint" style={{ animation: 'rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) 450ms both' }}>
+            ¿Olvidaste tu contraseña?{' '}
+            <button
+              type="button"
+              onClick={() => pushToast('Contáctate con el administrador para restablecer tu contraseña', 'info')}
+              className="text-muted underline underline-offset-4 hover:text-text"
+            >
+              Recuperar acceso
             </button>
           </p>
 
