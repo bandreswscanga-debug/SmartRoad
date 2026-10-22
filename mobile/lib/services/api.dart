@@ -71,6 +71,23 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateProfile({
+    required String nombre,
+    required String email,
+    String? telefonoContacto,
+  }) async {
+    final data = await _send('PUT', '/api/auth/perfil', {
+      'nombre': nombre,
+      'email': email,
+      'telefono_contacto': telefonoContacto,
+    });
+    if (data['user'] is Map) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('srs_user', jsonEncode(data['user']));
+    }
+    return data as Map<String, dynamic>;
+  }
+
   Future<List<dynamic>> vehicles() async {
     final data = await _send('GET', '/api/vehicles');
     return data['vehicles'] as List<dynamic>? ?? [];

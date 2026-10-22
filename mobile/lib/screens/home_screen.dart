@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import 'history_screen.dart';
 import 'sos_screen.dart';
 import 'config_screen.dart';
+import 'perfil_screen.dart';
+import '../services/api.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onLogout});
@@ -15,6 +20,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
+  Map<String, dynamic>? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarUsuario();
+  }
+
+  Future<void> _cargarUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('srs_user');
+    if (userJson != null && mounted) {
+      setState(() => _user = jsonDecode(userJson) as Map<String, dynamic>);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const HistoryScreen(),
           const SosScreen(),
           const ConfigScreen(),
+          if (_user != null)
+            PerfilScreen(
+              user: _user!,
+              onPerfilActualizado: _cargarUsuario,
+            ),
         ],
       ),
       bottomNavigationBar: Container(
@@ -43,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationDestination(icon: Icon(Icons.history), label: 'Historial'),
             NavigationDestination(icon: Icon(Icons.sos), label: 'SOS'),
             NavigationDestination(icon: Icon(Icons.tune), label: 'Config'),
+            NavigationDestination(icon: Icon(Icons.person), label: 'Perfil'),
           ],
         ),
       ),
