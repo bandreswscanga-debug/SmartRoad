@@ -106,6 +106,17 @@ export default function Login() {
           </button>
 
           <p className="text-center text-[11px] text-faint" style={{ animation: 'rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) 400ms both' }}>
+            ¿No tienes cuenta?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/registro', { replace: true })}
+              className="text-danger underline underline-offset-4 hover:text-danger-bright"
+            >
+              Regístrate
+            </button>
+          </p>
+
+          <p className="text-center text-[11px] text-faint" style={{ animation: 'rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) 460ms both' }}>
             Acceso admin · <span className="text-muted">bandreswscanga@hgmail.com</span> / <span className="text-muted">••••••••</span>
           </p>
         </form>

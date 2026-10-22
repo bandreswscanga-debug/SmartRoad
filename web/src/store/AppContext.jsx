@@ -158,6 +158,15 @@ export function AppProvider({ children }) {
     return data.user;
   }, []);
 
+  const register = useCallback(async (userData) => {
+    const data = await api.register(userData);
+    localStorage.setItem('srs_token', data.token);
+    localStorage.setItem('srs_user', JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(() => {
     stopAlarm();
     localStorage.removeItem('srs_token');
@@ -212,13 +221,14 @@ export function AppProvider({ children }) {
       toggleTheme,
       login,
       logout,
+      register,
       refreshAll,
       actionAlert,
       dismissCritical,
       pushToast,
       dismissToast
     }),
-    [token, user, summary, vehicles, activeAlerts, config, latestEvents, criticalAlert, connected, serverUptime, toasts, theme, toggleTheme, login, logout, refreshAll, actionAlert, dismissCritical, pushToast, dismissToast]
+    [token, user, summary, vehicles, activeAlerts, config, latestEvents, criticalAlert, connected, serverUptime, toasts, theme, toggleTheme, login, logout, register, refreshAll, actionAlert, dismissCritical, pushToast, dismissToast]
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

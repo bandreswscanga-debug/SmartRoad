@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   email VARCHAR(150) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   rol ENUM('admin','conductor') NOT NULL DEFAULT 'conductor',
+  tipo_persona ENUM('persona_natural','empresa') NOT NULL DEFAULT 'persona_natural',
+  telefono_contacto VARCHAR(30),
   activo TINYINT(1) NOT NULL DEFAULT 1,
   creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

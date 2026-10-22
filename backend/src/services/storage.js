@@ -46,6 +46,23 @@ class MemoryStore {
     return this.users.find((u) => u.id === Number(id)) || null;
   }
 
+  async createUser(userData) {
+    const id = this.next('user');
+    const row = {
+      id,
+      nombre: userData.nombre,
+      email: String(userData.email).toLowerCase(),
+      password_hash: userData.password_hash,
+      rol: userData.rol || 'conductor',
+      tipo_persona: userData.tipo_persona || 'persona_natural',
+      telefono_contacto: userData.telefono_contacto || null,
+      activo: 1,
+      creado: new Date().toISOString()
+    };
+    this.users.push(row);
+    return { ...row };
+  }
+
   async listVehicles() {
     return this.vehicles.map((v) => ({ ...v })).sort((a, b) => a.codigo.localeCompare(b.codigo));
   }
@@ -240,13 +257,21 @@ class MySqlStore {
   }
 
   async findUserByEmail(email) {
-    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE email = ? LIMIT 1', [email]);
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, tipo_persona, telefono_contacto, activo FROM usuarios WHERE email = ? LIMIT 1', [email]);
     return this.row(rows);
   }
 
   async getUserById(id) {
-    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE id = ? LIMIT 1', [id]);
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, tipo_persona, telefono_contacto, activo FROM usuarios WHERE id = ? LIMIT 1', [id]);
     return this.row(rows);
+  }
+
+  async createUser(userData) {
+    const [res] = await this.q(
+      'INSERT INTO usuarios (nombre, email, password_hash, rol, tipo_persona, telefono_contacto, activo) VALUES (?, ?, ?, ?, ?, ?, 1)',
+      [userData.nombre, String(userData.email).toLowerCase(), userData.password_hash, userData.rol || 'conductor', userData.tipo_persona || 'persona_natural', userData.telefono_contacto || null]
+    );
+    return this.getUserById(res.insertId);
   }
 
   vehicleShape(v) {

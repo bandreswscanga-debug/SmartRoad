@@ -3,6 +3,7 @@ import { useApp } from './store/AppContext';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
+import Registro from './pages/Registro';
 import Dashboard from './pages/Dashboard';
 import Monitoreo from './pages/Monitoreo';
 import Historial from './pages/Historial';
@@ -26,6 +27,10 @@ export default function App() {
       <Route
         path="/login"
         element={token ? <Navigate to="/" replace /> : <Login />}
+      />
+      <Route
+        path="/registro"
+        element={token ? <Navigate to="/" replace /> : <Registro />}
       />
       <Route
         path="/*"

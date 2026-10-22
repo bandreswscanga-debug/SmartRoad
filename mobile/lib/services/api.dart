@@ -52,6 +52,25 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> register({
+    required String nombre,
+    required String email,
+    required String password,
+    required String tipoPersona,
+    String? telefonoContacto,
+  }) async {
+    final data = await _send('POST', '/api/auth/registro', {
+      'nombre': nombre,
+      'email': email,
+      'password': password,
+      'tipo_persona': tipoPersona,
+      if (telefonoContacto != null && telefonoContacto.isNotEmpty)
+        'telefono_contacto': telefonoContacto,
+    });
+    token = data['token'] as String?;
+    return data as Map<String, dynamic>;
+  }
+
   Future<List<dynamic>> vehicles() async {
     final data = await _send('GET', '/api/vehicles');
     return data['vehicles'] as List<dynamic>? ?? [];

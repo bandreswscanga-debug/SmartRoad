@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
 import '../theme.dart';
+import 'registro_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onLogin});
@@ -131,6 +132,26 @@ class _LoginScreenState extends State<LoginScreen> {
               child: _busy
                   ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Ingresar al panel'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RegistroScreen(
+                            onRegistroExitoso: () {
+                              Navigator.of(context).pop();
+                              widget.onLogin();
+                            },
+                          ),
+                        ),
+                      ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.danger,
+                side: const BorderSide(color: AppColors.danger),
+              ),
+              child: const Text('¿No tienes cuenta? Regístrate'),
             ),
             const SizedBox(height: 12),
             const Text(
