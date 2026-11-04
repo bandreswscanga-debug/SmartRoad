@@ -38,7 +38,30 @@ module.exports = (store, ctx = {}) => {
     if (!user.activo) return res.status(403).json({ error: 'Usuario inactivo' });
     tracer?.trace('INFO', `[AUTH] Login exitoso de "${email}" (${user.rol}).`, ip);
     const token = sign(user);
-    res.json({ token, user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } });
+    const conductor = user.rol === 'conductor' ? await store.getConductorByUserId(user.id) : null;
+    res.json({
+      token,
+      user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
+      must_change_password: Boolean(user.must_change_password),
+      conductor_id: conductor ? conductor.id : null
+    });
+  });
+
+  // Cambio de contraseña (autenticado). Cumple la recomendación de seguridad:
+  // la cédula como clave inicial debe cambiarse en el primer ingreso.
+  router.post('/change-password', requireAuth, async (req, res) => {
+    const { actual, nueva } = req.body || {};
+    if (!actual || !nueva) return res.status(400).json({ error: 'Contraseña actual y nueva son obligatorias' });
+    if (String(nueva).length < 8 || String(nueva).length > 128) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener entre 8 y 128 caracteres' });
+    }
+    const user = await store.getUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const ok = await bcrypt.compare(String(actual), user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+    const password_hash = await bcrypt.hash(String(nueva), 10);
+    await store.updateUser(user.id, { password_hash, must_change_password: 0 });
+    res.json({ ok: true });
   });
 
   router.get('/me', requireAuth, async (req, res) => {

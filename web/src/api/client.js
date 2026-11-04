@@ -9,12 +9,16 @@ async function request(path, options = {}) {
   const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
   const res = await fetch(`${BASE}${path}`, { ...options, headers, signal: controller?.signal }).finally(() => clearTimeout(timer));
   if (res.status === 401) {
+    const data = await res.json().catch(() => ({}));
+    if (path.includes('/auth/login')) {
+      throw new Error(data.error || 'Credenciales inválidas');
+    }
     localStorage.removeItem('srs_token');
     localStorage.removeItem('srs_user');
     if (!window.location.pathname.includes('/login')) {
       window.location.href = '/login';
     }
-    throw new Error('Sesión expirada');
+    throw new Error(data.error || 'Sesión expirada');
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
@@ -35,6 +39,14 @@ export const api = {
 
   drivers: () => request('/drivers'),
   driver: (id) => request(`/drivers/${id}`),
+  createDriver: (body) => request('/drivers', { method: 'POST', body: JSON.stringify(body) }),
+  updateDriver: (id, body) => request(`/drivers/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteDriver: (id) => request(`/drivers/${id}`, { method: 'DELETE' }),
+
+  profile: () => request('/profile'),
+  updateProfile: (body) => request('/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  changePassword: (actual, nueva) =>
+    request('/auth/change-password', { method: 'POST', body: JSON.stringify({ actual, nueva }) }),
 
   events: (params = {}) => {
     const qs = new URLSearchParams(

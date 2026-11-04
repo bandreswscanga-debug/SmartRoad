@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/api.dart';
 import '../theme.dart';
 import 'history_screen.dart';
-import 'sos_screen.dart';
-import 'config_screen.dart';
+import 'camera_screen.dart';
+import 'reports_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onLogout});
@@ -15,6 +17,34 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
+  final ApiClient _api = ApiClient();
+  bool _sosBusy = false;
+
+  Future<void> _quickSos() async {
+    setState(() => _sosBusy = true);
+    try {
+      final vehicles = await _api.vehicles();
+      final codigo = vehicles.isNotEmpty
+          ? (vehicles.first['codigo'] ?? 'TRK-001') as String
+          : 'TRK-001';
+      double lat = 4.7031;
+      double lng = -74.1292;
+      if (vehicles.isNotEmpty) {
+        lat = (vehicles.first['lat'] as num?)?.toDouble() ?? lat;
+        lng = (vehicles.first['lng'] as num?)?.toDouble() ?? lng;
+      }
+      await _api.reportSos(codigo: codigo, lat: lat, lng: lng);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('SOS enviado al centro de control.')),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error SOS: $err')));
+    } finally {
+      if (mounted) setState(() => _sosBusy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +54,17 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           MonitorScreen(onLogout: widget.onLogout),
           const HistoryScreen(),
-          const SosScreen(),
-          const ConfigScreen(),
+          const CameraScreen(),
+          const ReportsScreen(),
+          const ProfileScreen(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _sosBusy ? null : _quickSos,
+        backgroundColor: AppColors.danger,
+        icon: const Icon(Icons.sos, color: Colors.white),
+        label: Text(_sosBusy ? 'Enviando…' : 'SOS',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -41,8 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
           destinations: const [
             NavigationDestination(icon: Icon(Icons.radar), label: 'Monitoreo'),
             NavigationDestination(icon: Icon(Icons.history), label: 'Historial'),
-            NavigationDestination(icon: Icon(Icons.sos), label: 'SOS'),
-            NavigationDestination(icon: Icon(Icons.tune), label: 'Config'),
+            NavigationDestination(icon: Icon(Icons.videocam_outlined), label: 'Cámara'),
+            NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Reportes'),
+            NavigationDestination(icon: Icon(Icons.person_outline), label: 'Perfil'),
           ],
         ),
       ),

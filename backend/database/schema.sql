@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   password_hash VARCHAR(255) NOT NULL,
   rol ENUM('admin','conductor') NOT NULL DEFAULT 'conductor',
   activo TINYINT(1) NOT NULL DEFAULT 1,
+  cedula VARCHAR(30) NULL UNIQUE,
+  must_change_password TINYINT(1) NOT NULL DEFAULT 0,
   creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -18,13 +20,17 @@ CREATE TABLE IF NOT EXISTS conductores (
   nombre VARCHAR(120) NOT NULL,
   documento VARCHAR(30) NOT NULL UNIQUE,
   telefono VARCHAR(30),
+  email VARCHAR(150) NULL UNIQUE,
+  placa VARCHAR(12) NULL,
+  usuario_id INT NULL UNIQUE,
   licencia VARCHAR(10),
   empresa VARCHAR(120),
   jornada_horas DECIMAL(4,2) DEFAULT 0,
   ultimo_descanso VARCHAR(10),
   kilometros INT DEFAULT 0,
   fatiga_actual INT DEFAULT 0,
-  viajes INT DEFAULT 0
+  viajes INT DEFAULT 0,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS vehiculos (

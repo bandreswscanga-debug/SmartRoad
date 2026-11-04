@@ -42,8 +42,66 @@ class MemoryStore {
     return this.users.find((u) => u.email === email) || null;
   }
 
+  async findUserByCedula(cedula) {
+    if (!cedula) return null;
+    return this.users.find((u) => u.cedula === String(cedula)) || null;
+  }
+
   async getUserById(id) {
     return this.users.find((u) => u.id === Number(id)) || null;
+  }
+
+  async createUser(user) {
+    const row = { id: this.next('user'), activo: 1, must_change_password: 0, ...user };
+    this.users.push(row);
+    return { ...row };
+  }
+
+  async updateUser(id, patch) {
+    const u = this.users.find((x) => x.id === Number(id));
+    if (!u) return null;
+    const allowed = ['nombre', 'telefono', 'password_hash', 'activo', 'rol', 'cedula', 'must_change_password'];
+    for (const k of allowed) {
+      if (patch[k] !== undefined) u[k] = patch[k];
+    }
+    return { ...u };
+  }
+
+  async findConductorByDocumento(documento) {
+    if (!documento) return null;
+    return this.drivers.find((d) => d.documento === String(documento)) || null;
+  }
+
+  async findConductorByEmail(email) {
+    if (!email) return null;
+    return this.drivers.find((d) => d.email === String(email).toLowerCase()) || null;
+  }
+
+  async getConductorByUserId(userId) {
+    return this.drivers.find((d) => Number(d.usuario_id) === Number(userId)) || null;
+  }
+
+  async createConductor(data) {
+    const row = { id: this.next('driver'), ...data };
+    this.drivers.push(row);
+    return { ...row };
+  }
+
+  async updateConductor(id, patch) {
+    const d = this.drivers.find((x) => x.id === Number(id));
+    if (!d) return null;
+    const allowed = ['nombre', 'documento', 'telefono', 'email', 'placa', 'usuario_id', 'licencia', 'empresa', 'jornada_horas', 'ultimo_descanso', 'kilometros', 'fatiga_actual', 'viajes'];
+    for (const k of allowed) {
+      if (patch[k] !== undefined) d[k] = patch[k];
+    }
+    return { ...d };
+  }
+
+  async deleteConductor(id) {
+    const i = this.drivers.findIndex((x) => x.id === Number(id));
+    if (i < 0) return false;
+    this.drivers.splice(i, 1);
+    return true;
   }
 
   async listVehicles() {
@@ -240,13 +298,77 @@ class MySqlStore {
   }
 
   async findUserByEmail(email) {
-    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE email = ? LIMIT 1', [email]);
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo, cedula, must_change_password FROM usuarios WHERE email = ? LIMIT 1', [email]);
+    return this.row(rows);
+  }
+
+  async findUserByCedula(cedula) {
+    if (!cedula) return null;
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo, cedula, must_change_password FROM usuarios WHERE cedula = ? LIMIT 1', [String(cedula)]);
     return this.row(rows);
   }
 
   async getUserById(id) {
-    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE id = ? LIMIT 1', [id]);
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo, cedula, must_change_password FROM usuarios WHERE id = ? LIMIT 1', [id]);
     return this.row(rows);
+  }
+
+  async createUser(user) {
+    await this.q(
+      'INSERT INTO usuarios (nombre, email, password_hash, rol, activo, cedula, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [user.nombre, user.email, user.password_hash, user.rol || 'conductor', user.activo ?? 1, user.cedula || null, user.must_change_password ? 1 : 0]
+    );
+    const [ins] = await this.q('SELECT LAST_INSERT_ID() AS id');
+    return this.getUserById(ins.id);
+  }
+
+  async updateUser(id, patch) {
+    const allowed = ['nombre', 'password_hash', 'activo', 'rol', 'cedula', 'must_change_password'];
+    const keys = Object.keys(patch).filter((k) => allowed.includes(k) && patch[k] !== undefined);
+    if (keys.length) {
+      await this.q(`UPDATE usuarios SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`, [...keys.map((k) => patch[k]), Number(id)]);
+    }
+    return this.getUserById(id);
+  }
+
+  async findConductorByDocumento(documento) {
+    if (!documento) return null;
+    const rows = await this.q('SELECT * FROM conductores WHERE documento = ? LIMIT 1', [String(documento)]);
+    return this.row(rows);
+  }
+
+  async findConductorByEmail(email) {
+    if (!email) return null;
+    const rows = await this.q('SELECT * FROM conductores WHERE email = ? LIMIT 1', [String(email).toLowerCase()]);
+    return this.row(rows);
+  }
+
+  async getConductorByUserId(userId) {
+    const rows = await this.q('SELECT * FROM conductores WHERE usuario_id = ? LIMIT 1', [Number(userId)]);
+    return this.row(rows);
+  }
+
+  async createConductor(data) {
+    await this.q(
+      'INSERT INTO conductores (nombre, documento, telefono, email, placa, usuario_id, licencia, empresa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [data.nombre, data.documento, data.telefono || null, data.email || null, data.placa || null, data.usuario_id || null, data.licencia || null, data.empresa || null]
+    );
+    const [ins] = await this.q('SELECT LAST_INSERT_ID() AS id');
+    return this.getDriver(ins.id);
+  }
+
+  async updateConductor(id, patch) {
+    const allowed = ['nombre', 'documento', 'telefono', 'email', 'placa', 'usuario_id', 'licencia', 'empresa'];
+    const keys = Object.keys(patch).filter((k) => allowed.includes(k) && patch[k] !== undefined);
+    if (keys.length) {
+      await this.q(`UPDATE conductores SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`, [...keys.map((k) => patch[k]), Number(id)]);
+    }
+    return this.getDriver(id);
+  }
+
+  async deleteConductor(id) {
+    await this.q('DELETE FROM conductores WHERE id = ?', [Number(id)]);
+    return true;
   }
 
   vehicleShape(v) {
@@ -309,6 +431,9 @@ class MySqlStore {
       nombre: d.nombre,
       documento: d.documento,
       telefono: d.telefono,
+      email: d.email || null,
+      placa: d.placa || null,
+      usuario_id: d.usuario_id || null,
       licencia: d.licencia,
       empresa: d.empresa,
       jornada_horas: Number(d.jornada_horas),

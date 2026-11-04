@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Radar, History, BarChart3, Users, BellRing, Smartphone, Settings, ShieldAlert
+  LayoutDashboard, Radar, Camera, History, BarChart3, Users, BellRing, Smartphone, Settings, ShieldAlert
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/monitoreo', label: 'Monitoreo', icon: Radar },
+  { to: '/camara', label: 'Cámara', icon: Camera },
   { to: '/historial', label: 'Historial', icon: History },
   { to: '/reportes', label: 'Reportes', icon: BarChart3 },
   { to: '/conductores', label: 'Conductores', icon: Users },

@@ -34,15 +34,15 @@ function buildStore() {
   const userPassword = bcrypt.hashSync('Conductor123', 10);
 
   state.users.push(
-    { id: ++seq.user, nombre: 'Administrador Demo', email: 'admin@smartroad-demo.com', password_hash: masterPassword, rol: 'admin', activo: 1, creado: hoursAgo(240) },
-    { id: ++seq.user, nombre: 'Juan Pérez', email: 'juan@smartroad-demo.com', password_hash: userPassword, rol: 'conductor', activo: 1, creado: hoursAgo(240) }
+    { id: ++seq.user, nombre: 'Administrador Demo', email: 'admin@smartroad-demo.com', password_hash: masterPassword, rol: 'admin', activo: 1, cedula: null, must_change_password: 0, creado: hoursAgo(240) },
+    { id: ++seq.user, nombre: 'Juan Pérez', email: 'juan@smartroad-demo.com', password_hash: userPassword, rol: 'conductor', activo: 1, cedula: '79123456', must_change_password: 1, creado: hoursAgo(240) }
   );
 
   state.drivers.push(
-    { id: ++seq.driver, nombre: 'Juan Pérez', documento: '79.123.456', telefono: '+57 311 000 1122', licencia: 'C3', empresa: 'Transportes Ruta 45', jornada_horas: 7.5, ultimo_descanso: '02:40', kilometros: 412, fatiga_actual: 38, viajes: 6, riesgo: 'BAJO' },
-    { id: ++seq.driver, nombre: 'Lucía Gómez', documento: '1.024.567.890', telefono: '+57 315 000 3344', licencia: 'C1', empresa: 'Transportes Ruta 45', jornada_horas: 5.0, ultimo_descanso: '05:10', kilometros: 268, fatiga_actual: 22, viajes: 4, riesgo: 'BAJO' },
-    { id: ++seq.driver, nombre: 'Carlos Ruiz', documento: '79.900.123', telefono: '+57 300 000 5566', licencia: 'C3', empresa: 'Flota Andina', jornada_horas: 6.2, ultimo_descanso: '03:55', kilometros: 310, fatiga_actual: 45, viajes: 5, riesgo: 'MEDIO' },
-    { id: ++seq.driver, nombre: 'Ana Torres', documento: '1.098.765.432', telefono: '+57 320 000 7788', licencia: 'C3', empresa: 'Transportes Ruta 45', jornada_horas: 11.4, ultimo_descanso: '07:20', kilometros: 655, fatiga_actual: 86, viajes: 3, riesgo: 'CRITICO' }
+    { id: ++seq.driver, nombre: 'Juan Pérez', documento: '79123456', telefono: '+57 311 000 1122', email: 'juan@smartroad-demo.com', placa: 'SRD-001', usuario_id: 2, licencia: 'C3', empresa: 'Transportes Ruta 45', jornada_horas: 7.5, ultimo_descanso: '02:40', kilometros: 412, fatiga_actual: 38, viajes: 6, riesgo: 'BAJO' },
+    { id: ++seq.driver, nombre: 'Lucía Gómez', documento: '1024567890', telefono: '+57 315 000 3344', email: null, placa: null, usuario_id: null, licencia: 'C1', empresa: 'Transportes Ruta 45', jornada_horas: 5.0, ultimo_descanso: '05:10', kilometros: 268, fatiga_actual: 22, viajes: 4, riesgo: 'BAJO' },
+    { id: ++seq.driver, nombre: 'Carlos Ruiz', documento: '79900123', telefono: '+57 300 000 5566', email: null, placa: null, usuario_id: null, licencia: 'C3', empresa: 'Flota Andina', jornada_horas: 6.2, ultimo_descanso: '03:55', kilometros: 310, fatiga_actual: 45, viajes: 5, riesgo: 'MEDIO' },
+    { id: ++seq.driver, nombre: 'Ana Torres', documento: '1098765432', telefono: '+57 320 000 7788', email: null, placa: null, usuario_id: null, licencia: 'C3', empresa: 'Transportes Ruta 45', jornada_horas: 11.4, ultimo_descanso: '07:20', kilometros: 655, fatiga_actual: 86, viajes: 3, riesgo: 'CRITICO' }
   );
 
   const veh = [

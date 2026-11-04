@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { conductorVehicleIds } = require('../services/scope');
 
 const ACTION_TO_ESTADO = {
   CONFIRMADA: 'GESTIONADA',
@@ -18,19 +19,31 @@ module.exports = (store, ctx) => {
 
   router.use(requireAuth);
 
+  async function scoped(alerts, req) {
+    if (req.user.rol !== 'conductor') return alerts;
+    const ids = await conductorVehicleIds(store, req.user);
+    return alerts.filter((a) => ids.includes(Number(a.vehiculo_id)));
+  }
+
   router.get('/', async (req, res) => {
-    const alerts = await store.listAlerts(req.query);
+    const alerts = await scoped(await store.listAlerts(req.query), req);
     res.json({ alerts, total: alerts.length });
   });
 
-  router.get('/active', async (_req, res) => {
-    const alerts = await store.listActiveAlerts();
+  router.get('/active', async (req, res) => {
+    const alerts = await scoped(await store.listActiveAlerts(), req);
     res.json({ alerts });
   });
 
   router.get('/:id', async (req, res) => {
     const alert = await store.getAlert(req.params.id);
     if (!alert) return res.status(404).json({ error: 'Alerta no encontrada' });
+    if (req.user.rol === 'conductor') {
+      const ids = await conductorVehicleIds(store, req.user);
+      if (!ids.includes(Number(alert.vehiculo_id))) {
+        return res.status(403).json({ error: 'No puede ver datos de otro conductor' });
+      }
+    }
     res.json({ alert });
   });
 
@@ -39,6 +52,14 @@ module.exports = (store, ctx) => {
     const accionId = String(accion || '').toUpperCase();
     if (!ACTION_TO_ESTADO[accionId]) {
       return res.status(400).json({ error: 'Acción inválida. Use CONFIRMADA, ZONA_SEGURA o EMERGENCIA_LLAMADA' });
+    }
+    const current = await store.getAlert(req.params.id);
+    if (!current) return res.status(404).json({ error: 'Alerta no encontrada' });
+    if (req.user.rol === 'conductor') {
+      const ids = await conductorVehicleIds(store, req.user);
+      if (!ids.includes(Number(current.vehiculo_id))) {
+        return res.status(403).json({ error: 'No puede ver datos de otro conductor' });
+      }
     }
     const updated = await store.updateAlert(req.params.id, {
       estado: ACTION_TO_ESTADO[accionId],
