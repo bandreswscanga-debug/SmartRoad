@@ -1,7 +1,44 @@
 const express = require('express');
+const { requireAuth } = require('../middleware/auth');
 
 module.exports = (store, ctx) => {
   const router = express.Router();
+
+  router.post('/driver-drowsiness-test', requireAuth, async (req, res) => {
+    if (req.user.rol !== 'conductor') return res.status(403).json({ error: 'Ruta exclusiva para conductores' });
+    const { nivel, descripcion } = req.body || {};
+    const nv = String(nivel || '').toUpperCase();
+    if (!['BAJO', 'MEDIO', 'CRITICO'].includes(nv)) return res.status(400).json({ error: 'nivel debe ser BAJO, MEDIO o CRITICO' });
+    const driver = await store.getDriverByUserId(req.user.id);
+    if (!driver) return res.status(404).json({ error: 'Perfil de conductor no encontrado' });
+    const event = await store.createEvent({
+      conductor_id: driver.id,
+      tipo: { CRITICO: 'SOMNOLENCIA_ALTA', MEDIO: 'MICRO_SUENO', BAJO: 'DISTRACCION' }[nv],
+      riesgo: nv,
+      canal: 'CAMARA',
+      descripcion: descripcion || `Prueba voluntaria del conductor: nivel ${nv} registrado desde su sesión.`
+    });
+    if (ctx?.broadcast) ctx.broadcast('event', { event });
+    res.status(201).json({ ok: true, event });
+  });
+
+  router.post('/driver-sos', requireAuth, async (req, res) => {
+    if (req.user.rol !== 'conductor') return res.status(403).json({ error: 'Ruta exclusiva para conductores' });
+    const driver = await store.getDriverByUserId(req.user.id);
+    if (!driver) return res.status(404).json({ error: 'Perfil de conductor no encontrado' });
+    const event = await store.createEvent({
+      conductor_id: driver.id,
+      tipo: 'SOS',
+      riesgo: 'CRITICO',
+      canal: 'APP_MOVIL',
+      lat: req.body?.lat,
+      lng: req.body?.lng,
+      velocidad: 0,
+      descripcion: 'SOS manual enviado desde la aplicación móvil del conductor.'
+    });
+    if (ctx?.broadcast) ctx.broadcast('event', { event });
+    res.status(201).json({ ok: true, event });
+  });
 
   router.post('/register', async (req, res) => {
     const { codigo, imei } = req.body || {};

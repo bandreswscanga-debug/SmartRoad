@@ -8,6 +8,7 @@ web/dist/
 mobile/build/
 .android/
 .gradle/
+.gradle-sena/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -23,6 +24,7 @@ mobile/build/
 # Logs
 *.log
 npm-debug.log*
+backend/data/driver-data.json
 
 # IDE / SO
 .idea/

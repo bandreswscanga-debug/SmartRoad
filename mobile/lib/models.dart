@@ -7,10 +7,64 @@ class User {
   const User({required this.id, required this.nombre, required this.email, required this.rol});
 
   factory User.fromJson(Map<String, dynamic> json) => User(
-        id: json['id'] as int,
+        id: (json['id'] as num?)?.toInt() ?? 0,
         nombre: json['nombre'] as String? ?? 'Operador',
         email: json['email'] as String? ?? '',
         rol: json['rol'] as String? ?? 'conductor',
+      );
+}
+
+class DriverProfile {
+  final String nombre;
+  final String email;
+  final String documento;
+  final String licencia;
+  final String telefono;
+  final String empresa;
+  final String placa;
+  final String tipoVehiculo;
+  final String tipoSangre;
+  final String verificacionEstado;
+  final int? modeloVehiculo;
+  final double fatigaActual;
+  final String riesgo;
+  final double jornadaHoras;
+  final double kilometros;
+
+  const DriverProfile({
+    required this.nombre,
+    required this.email,
+    required this.documento,
+    required this.licencia,
+    required this.telefono,
+    required this.empresa,
+    required this.placa,
+    required this.tipoVehiculo,
+    required this.tipoSangre,
+    required this.verificacionEstado,
+    required this.modeloVehiculo,
+    required this.fatigaActual,
+    required this.riesgo,
+    required this.jornadaHoras,
+    required this.kilometros,
+  });
+
+  factory DriverProfile.fromJson(Map<String, dynamic> json) => DriverProfile(
+        nombre: json['nombre'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        documento: json['documento'] as String? ?? '',
+        licencia: json['licencia'] as String? ?? '',
+        telefono: json['telefono'] as String? ?? '',
+        empresa: json['empresa'] as String? ?? '',
+        placa: json['placa'] as String? ?? '',
+        tipoVehiculo: json['tipo_vehiculo'] as String? ?? '',
+        tipoSangre: json['tipo_sangre'] as String? ?? '',
+        verificacionEstado: json['verificacion_estado'] as String? ?? 'PENDIENTE',
+        modeloVehiculo: (json['modelo_vehiculo'] as num?)?.toInt(),
+        fatigaActual: (json['fatiga_actual'] as num?)?.toDouble() ?? 0,
+        riesgo: json['riesgo'] as String? ?? 'BAJO',
+        jornadaHoras: (json['jornada_horas'] as num?)?.toDouble() ?? 0,
+        kilometros: (json['kilometros'] as num?)?.toDouble() ?? 0,
       );
 }
 

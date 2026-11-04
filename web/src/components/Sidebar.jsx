@@ -17,7 +17,16 @@ const NAV = [
 ];
 
 export default function Sidebar({ open, onClose }) {
-  const { activeAlerts } = useApp();
+  const { activeAlerts, user } = useApp();
+  const isDriver = user?.rol === 'conductor';
+  const nav = isDriver
+    ? [
+        { to: '/conductor', label: 'Mi perfil', icon: LayoutDashboard, end: true },
+        { to: '/conductor/monitoreo', label: 'Monitoreo', icon: Radar },
+        { to: '/conductor/eventos', label: 'Mis eventos', icon: History },
+        { to: '/conductor/configuracion', label: 'Configuración', icon: Settings }
+      ]
+    : NAV;
   return (
     <>
       <aside
@@ -38,7 +47,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -61,6 +70,15 @@ export default function Sidebar({ open, onClose }) {
               )}
             </NavLink>
           ))}
+          {user?.rol === 'admin' && (
+            <NavLink to="/usuarios" onClick={onClose} className={({ isActive }) =>
+              `group flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13px] font-semibold ${
+                isActive ? 'bg-danger/15 text-danger-bright border border-danger/25' : 'text-muted border border-transparent hover:bg-surface-2 hover:text-text'
+              }`
+            }>
+              <Users size={17} /> Usuarios / auditoría
+            </NavLink>
+          )}
         </nav>
 
         <div className="border-t border-border p-4">

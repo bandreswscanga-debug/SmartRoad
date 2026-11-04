@@ -30,6 +30,10 @@ Sistema de detección de somnolencia y fatiga del conductor mediante visión art
 - **RF8** Semáforo de riesgo verde/amarillo/rojo en panel y app
 - **RF9** Sugerencia de pausa; **RF10** Registro y seguimiento de eventos (historial, reportes)
 - **RF11/RNF** Panel web de control, mapas, estadísticas, gestión de conductores
+- **Registro de conductores** — alta pública con RUT/cédula, carnet de conducir, vehículo y estado de verificación pendiente para revisión administrativa.
+- **Informe integral** — desde Conductores se puede generar un documento imprimible para guardar como PDF con datos personales, vehículo, resumen operativo y últimos eventos de somnolencia.
+- **Portal independiente del conductor** — el registro crea la cuenta inmediatamente; `/conductor` solo muestra sus propios datos y eventos voluntarios, nunca la simulación del panel administrativo.
+- **Persistencia de respaldo** — cuando no hay MySQL, los registros y eventos propios se guardan en `backend/data/driver-data.json` (ese archivo está ignorado por Git).
 
 ## Cómo ejecutar
 
@@ -78,15 +82,20 @@ flutter pub get
 flutter run
 ```
 
-Screens: Login · Monitoreo (semáforo RF8 + fatiga en vivo) · SOS (RF4) · Historial (RF10) · Configuración (CU-05).
+Screens: Login y registro de conductor · Monitoreo (semáforo RF8 + fatiga en vivo) · SOS (RF4) · Historial personal (RF10) · Configuración (CU-05) · Perfil y exportación PDF.
 
-URL de la API por defecto: `http://10.0.2.2:4000` (emulador Android). Se puede cambiar en `mobile/lib/services/api.dart` (`baseUrl`).
+URL de la API por defecto en este equipo: `http://192.168.137.163:4000`. Para el emulador Android usa `http://10.0.2.2:4000`; para un celular en la misma red cambia `baseUrl` por la IPv4 del computador que ejecuta el backend.
 
 ## Endpoints principales
 
 | Método | Ruta                       | Descripción                          |
 | ------ | -------------------------- | ------------------------------------ |
 | POST   | `/api/auth/login`          | JWT                                 |
+| POST   | `/api/auth/register-driver` | Registro público de conductor; queda en estado `PENDIENTE` |
+| GET    | `/api/drivers/me/profile` | Perfil del conductor autenticado |
+| GET    | `/api/drivers/me/events` | Solo eventos propios del conductor autenticado |
+| POST   | `/api/telemetry/driver-drowsiness-test` | Registra una prueba voluntaria del conductor |
+| POST   | `/api/telemetry/driver-sos` | Registra un SOS asociado al conductor móvil |
 | GET    | `/api/dashboard/summary`   | Resumen del centro de control       |
 | GET    | `/api/vehicles`            | Flota con estado y riesgo           |
 | GET/PUT| `/api/config`              | Configuración de alertas (CU-05)    |

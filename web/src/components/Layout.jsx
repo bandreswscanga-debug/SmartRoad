@@ -16,6 +16,10 @@ const TITLES = {
   '/alertas': ['Centro de alertas', 'Alertas críticas activas y gestionadas del sistema'],
   '/app-movil': ['App Móvil', 'Aplicación complementaria para el conductor (Flutter)'],
   '/configuracion': ['Configuración', 'Umbrales de riesgo, tipo de alerta y número de emergencia (CU-05)']
+  ,'/conductor': ['Mi perfil', 'Información personal, vehículo y eventos propios']
+  ,'/conductor/monitoreo': ['Monitoreo personal', 'Prueba y seguimiento de somnolencia del conductor']
+  ,'/conductor/eventos': ['Mis eventos', 'Historial personal de somnolencia y seguridad']
+  ,'/conductor/configuracion': ['Configuración', 'Preferencias de alerta del conductor']
 };
 
 export default function Layout({ children }) {
