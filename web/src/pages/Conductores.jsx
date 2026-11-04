@@ -17,11 +17,16 @@ export default function Conductores() {
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [shared, setShared] = useState(null); // credenciales listas para compartir
+  const [apkUrl, setApkUrl] = useState(null);
 
   const isAdmin = user?.rol === 'admin';
 
   const load = () => api.drivers().then((d) => setDrivers(d.drivers)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.appInfo().then((a) => setApkUrl(a.apkUrl || null)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!detail) return;
@@ -83,11 +88,23 @@ export default function Conductores() {
         pushToast('Conductor actualizado', 'success');
       } else {
         const created = await api.createDriver(payload);
+        // Tarjeta para compartir credenciales (WhatsApp/copiar): funciona sin correo.
+        setShared({
+          nombre: created.driver?.nombre || payload.nombre,
+          email: created.driver?.email || payload.email,
+          cedula: created.driver?.documento || payload.documento,
+          telefono: created.driver?.telefono || ''
+        });
         if (created.email_enviado) {
-          pushToast('Conductor registrado y correo enviado.', 'success');
+          pushToast(
+            created.email_preview
+              ? `Conductor registrado y correo enviado. Verlo en: ${created.email_preview}`
+              : 'Conductor registrado y correo enviado.',
+            'success'
+          );
         } else {
           pushToast(
-            `Conductor registrado, pero el correo falló: ${created.email_error || 'sin servicio de correo'}`,
+            `Conductor registrado. Comparta sus credenciales con la tarjeta de abajo (correo aún no configurado).`,
             'warning'
           );
         }
@@ -102,10 +119,14 @@ export default function Conductores() {
   };
 
   const remove = async (d) => {
-    if (!window.confirm(`¿Eliminar a ${d.nombre}? También se conserva su usuario de acceso.`)) return;
+    if (!window.confirm(`¿Eliminar a ${d.nombre} con TODOS sus datos? Se borran su cuenta de acceso, sus vehículos asignados y su historial (eventos y alertas).`)) return;
     try {
-      await api.deleteDriver(d.id);
-      pushToast('Conductor eliminado', 'success');
+      const res = await api.deleteDriver(d.id);
+      const n = res.eliminados || {};
+      pushToast(
+        `Datos de ${d.nombre} eliminados${n.vehiculos ? ` (${n.vehiculos} vehículo(s), ${n.eventos || 0} evento(s), ${n.alertas || 0} alerta(s))` : ''}`,
+        'success'
+      );
       if (detail?.id === d.id) setDetail(null);
       await load();
     } catch (err) {
@@ -157,6 +178,60 @@ export default function Conductores() {
               {editing && <button type="button" className="btn-ghost" onClick={reset}>Cancelar</button>}
             </div>
           </form>
+        </div>
+      )}
+
+      {shared && (
+        <div className="card space-y-3 border-success/40 p-5">
+          <p className="section-title">Credenciales de {shared.nombre} — listas para compartir</p>
+          <div className="grid gap-2 text-xs sm:grid-cols-3">
+            <p className="rounded-lg bg-surface-2 px-3 py-2">Usuario: <b>{shared.email}</b></p>
+            <p className="rounded-lg bg-surface-2 px-3 py-2">Clave inicial: <b>{shared.cedula}</b></p>
+            <p className="rounded-lg bg-surface-2 px-3 py-2">
+              App: {apkUrl ? <a className="font-bold text-info underline" href={apkUrl} target="_blank" rel="noreferrer">Descargar APK</a> : 'el admin comparte el instalador (APK)'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                const msg = `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).${apkUrl ? `\nDescargue la app aquí: ${apkUrl}` : ''}`;
+                navigator.clipboard?.writeText(msg).then(
+                  () => pushToast('Credenciales copiadas. Pégalas en WhatsApp o correo.', 'success'),
+                  () => pushToast('No se pudo copiar. Seleccione el texto manualmente.', 'warning')
+                );
+              }}
+            >
+              Copiar credenciales
+            </button>
+            {(() => {
+              // wa.me exige indicativo país: Colombia 57 + 10 dígitos.
+              let digits = String(shared.telefono || '').replace(/\D/g, '');
+              if (/^0/.test(digits)) digits = digits.replace(/^0+/, '');
+              if (/^57/.test(digits)) {
+                // ya trae indicativo
+              } else if (digits.length === 10) {
+                digits = `57${digits}`;
+              } else {
+                return null;
+              }
+              const msg = encodeURIComponent(
+                `Hola ${shared.nombre}, tu cuenta SmartRoad S.O.S está lista.\nUsuario: ${shared.email}\nClave inicial: ${shared.cedula} (cámbiala en tu primer ingreso desde Perfil).${apkUrl ? `\nDescargue la app aquí: ${apkUrl}` : ''}`
+              );
+              return (
+                <a
+                  className="btn-ghost"
+                  href={`https://wa.me/${digits}?text=${msg}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Enviar por WhatsApp
+                </a>
+              );
+            })()}
+            <button type="button" className="btn-ghost" onClick={() => setShared(null)}>Cerrar</button>
+          </div>
         </div>
       )}
 

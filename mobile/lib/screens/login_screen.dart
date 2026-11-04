@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _pass = TextEditingController();
   final ApiClient _api = ApiClient();
   bool _busy = false;
+  bool _showPass = false;
   String? _error;
   bool _mustChange = false;
 
@@ -106,10 +107,18 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 14),
             TextField(
               controller: _pass,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: !_showPass,
+              decoration: InputDecoration(
                 labelText: 'Contraseña (primera vez: tu cédula)',
-                prefixIcon: Icon(Icons.lock_outline, color: AppColors.faint),
+                prefixIcon: const Icon(Icons.lock_outline, color: AppColors.faint),
+                suffixIcon: IconButton(
+                  tooltip: _showPass ? 'Ocultar contraseña' : 'Mostrar contraseña',
+                  onPressed: () => setState(() => _showPass = !_showPass),
+                  icon: Icon(
+                    _showPass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: AppColors.faint,
+                  ),
+                ),
               ),
             ),
             if (_mustChange) ...[

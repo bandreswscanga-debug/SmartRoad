@@ -86,6 +86,7 @@ function buildStore() {
       ultimo_heartbeat: nowIso()
     });
   });
+  seq.vehicle = state.vehicles.length;
 
   const ev = [
     { tipo: 'MICRO_SUENO', riesgo: 'MEDIO', canal: 'CAMARA', vehiculo_id: 1, lat: 4.7001, lng: -74.1277, velocidad: 84, descripcion: 'Cierre de ojos prolongado detectado (1.4 s).', atendido: true, mins: 220, ms: 1850 },

@@ -12,6 +12,8 @@ const { requireAuth, requireAdmin } = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
+const iaRoutes = require('./routes/ia');
+const appinfoRoutes = require('./routes/appinfo');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/openapi');
 const vehicleRoutes = require('./routes/vehicles');
@@ -91,6 +93,8 @@ async function createApp() {
 
   app.use('/api/auth', authLimiter, authRoutes(store, ctx));
   app.use('/api/profile', profileRoutes(store));
+  app.use('/api/ia', iaRoutes(store));
+  app.use('/api', appinfoRoutes());
   app.use('/api/dashboard', dashboardRoutes(store, ctx));
   app.use('/api/vehicles', vehicleRoutes(store));
   app.use('/api/drivers', driverRoutes(store));

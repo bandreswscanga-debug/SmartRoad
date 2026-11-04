@@ -4,10 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  ApiClient({this.baseUrl = defaultBase});
+  ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? defaultBase;
 
-  static const defaultBase = 'http://192.168.137.163:4000';
-  final String baseUrl;
+  static const defaultBase = 'http://127.0.0.1:4000';
+  String baseUrl;
   String? token;
 
   Uri _u(String path) => Uri.parse('$baseUrl$path');
@@ -18,9 +18,11 @@ class ApiClient {
       };
 
   Future<void> _ensureToken() async {
-    if (token != null && token!.isNotEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString('srs_token');
+    if (token == null || token!.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      token = prefs.getString('srs_token');
+      if (token != null && token!.isEmpty) token = null;
+    }
   }
 
   Future<dynamic> _send(String method, String path, [Object? body]) async {
@@ -28,12 +30,18 @@ class ApiClient {
     final uri = _u(path);
     final headers = _headers;
     final encoded = body == null ? null : jsonEncode(body);
-    final http.Response resp = switch (method) {
-      'GET' => await http.get(uri, headers: headers).timeout(const Duration(seconds: 12)),
-      'POST' => await http.post(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
-      'PUT' => await http.put(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
-      _ => throw ApiException('Método no soportado: $method'),
-    };
+    final http.Response resp = await (() async {
+      try {
+        return await switch (method) {
+          'GET' => http.get(uri, headers: headers).timeout(const Duration(seconds: 12)),
+          'POST' => http.post(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
+          'PUT' => http.put(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
+          _ => throw ApiException('Método no soportado: $method'),
+        };
+      } catch (err) {
+        throw ApiException('Sin conexión con $baseUrl [$err]. Revise el cable USB o la red.');
+      }
+    })();
     final data = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;
     if (resp.statusCode == 401) {
       token = null;
@@ -96,6 +104,11 @@ class ApiClient {
   Future<List<dynamic>> events() async {
     final data = await _send('GET', '/api/events');
     return data['events'] as List<dynamic>? ?? [];
+  }
+
+  Future<List<dynamic>> drivers() async {
+    final data = await _send('GET', '/api/drivers');
+    return data['drivers'] as List<dynamic>? ?? [];
   }
 
   Future<Map<String, dynamic>> config() async {

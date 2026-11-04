@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: smartroad-sos-api
+    runtime: node
+    plan: free
+    # El backend sirve también el panel web (web/dist) en la misma URL.
+    buildCommand: "cd web && (pnpm install --frozen-lockfile || pnpm install) && pnpm build && cd ../backend && (pnpm install --frozen-lockfile || pnpm install)"
+    startCommand: "node src/server.js"
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      # Secreto JWT (mínimo 32 caracteres). Genere uno de 64 hex y péguelo.
+      - key: JWT_SECRET
+        sync: false
+      # MySQL en la nube (ej. PlanetScale, formato mysql://user:pass@host:3306/smartroad_sos?ssl=true).
+      - key: MYSQL_URL
+        sync: false
+      # Clave de telemetría de dispositivos (cualquiera, guárdela).
+      - key: TELEMETRY_API_KEY
+        generateValue: true
+      # Correo Brevo (SMTP). Ver DEPLOY.md.
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "0"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Link público del APK (Drive/Releases) para correo y WhatsApp.
+      - key: APK_DOWNLOAD_URL
+        sync: false
+      # IA Groq (opcional).
+      - key: GROQ_API_KEY
+        sync: false

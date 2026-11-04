@@ -98,10 +98,37 @@ class MemoryStore {
   }
 
   async deleteConductor(id) {
-    const i = this.drivers.findIndex((x) => x.id === Number(id));
-    if (i < 0) return false;
-    this.drivers.splice(i, 1);
-    return true;
+    const d = this.drivers.find((x) => x.id === Number(id));
+    if (!d) return { deleted: false };
+    // Vehículos asignados a esta persona y todo su historial.
+    const vehicleIds = this.vehicles.filter((v) => Number(v.conductor_id) === Number(d.id)).map((v) => v.id);
+    const before = {
+      telemetry: this.telemetry.length,
+      events: this.events.length,
+      alerts: this.alerts.length
+    };
+    this.telemetry = this.telemetry.filter((t) => !vehicleIds.includes(Number(t.vehiculo_id)));
+    this.events = this.events.filter((e) => !vehicleIds.includes(Number(e.vehiculo_id)));
+    this.alerts = this.alerts.filter((a) => !vehicleIds.includes(Number(a.vehiculo_id)));
+    this.vehicles = this.vehicles.filter((v) => !vehicleIds.includes(v.id));
+    // Cuenta de acceso vinculada.
+    let usuario = 0;
+    if (d.usuario_id) {
+      const i = this.users.findIndex((u) => u.id === Number(d.usuario_id));
+      if (i >= 0) {
+        this.users.splice(i, 1);
+        usuario = 1;
+      }
+    }
+    this.drivers.splice(this.drivers.indexOf(d), 1);
+    return {
+      deleted: true,
+      usuario,
+      vehiculos: vehicleIds.length,
+      telemetria: before.telemetry - this.telemetry.length,
+      eventos: before.events - this.events.length,
+      alertas: before.alerts - this.alerts.length
+    };
   }
 
   async listVehicles() {
@@ -114,6 +141,25 @@ class MemoryStore {
 
   async getVehicleByCode(code) {
     return this.vehicles.find((v) => v.codigo === code) || null;
+  }
+
+  async createVehicle(data) {
+    const row = {
+      id: this.next('vehicle'),
+      estado: 'DETENIDO',
+      riesgo: 'BAJO',
+      lat: 4.6097,
+      lng: -74.0817,
+      velocidad: 0,
+      bateria: 100,
+      imei: `SRD-${Date.now().toString().slice(-6)}`,
+      ultima_actividad: new Date().toISOString(),
+      ...data
+    };
+    this.vehicles.push(row);
+    const driver = data.conductor_id ? this.drivers.find((d) => d.id === Number(data.conductor_id)) : null;
+    if (driver) row.conductor_nombre = driver.nombre;
+    return { ...row };
   }
 
   async updateVehicle(id, patch) {
@@ -367,8 +413,22 @@ class MySqlStore {
   }
 
   async deleteConductor(id) {
+    const driver = await this.getDriver(id);
+    if (!driver) return { deleted: false };
+    const vehRows = await this.q('SELECT id FROM vehiculos WHERE conductor_id = ?', [Number(id)]);
+    const vehicleIds = vehRows.map((r) => r.id);
+    // Cuenta de acceso vinculada a la persona.
+    let usuario = 0;
+    if (driver.usuario_id) {
+      await this.q('DELETE FROM usuarios WHERE id = ?', [Number(driver.usuario_id)]);
+      usuario = 1;
+    }
+    // Los eventos/alertas/telemetría caen por ON DELETE CASCADE del vehículo.
+    if (vehicleIds.length) {
+      await this.q(`DELETE FROM vehiculos WHERE id IN (${vehicleIds.map(() => '?').join(',')})`, vehicleIds);
+    }
     await this.q('DELETE FROM conductores WHERE id = ?', [Number(id)]);
-    return true;
+    return { deleted: true, usuario, vehiculos: vehicleIds.length };
   }
 
   vehicleShape(v) {
@@ -407,6 +467,20 @@ class MySqlStore {
   async getVehicleByCode(code) {
     const rows = await this.q('SELECT v.*, d.nombre AS conductor_nombre FROM vehiculos v LEFT JOIN conductores d ON d.id = v.conductor_id WHERE v.codigo = ? LIMIT 1', [code]);
     return this.vehicleShape(this.row(rows));
+  }
+
+  async createVehicle(data) {
+    await this.q(
+      'INSERT INTO vehiculos (codigo, nombre, placa, tipo, modelo, conductor_id, ruta, estado, riesgo, lat, lng, velocidad, bateria, imei) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        data.codigo, data.nombre || null, data.placa, data.tipo || 'Particular',
+        data.modelo || new Date().getFullYear(), data.conductor_id || null, data.ruta || 'Sin ruta',
+        data.estado || 'DETENIDO', data.riesgo || 'BAJO',
+        data.lat ?? 4.6097, data.lng ?? -74.0817, data.velocidad ?? 0, data.bateria ?? 100,
+        data.imei || `SRD-${Date.now().toString().slice(-6)}`
+      ]
+    );
+    return this.getVehicleByCode(data.codigo);
   }
 
   async updateVehicle(id, patch) {
