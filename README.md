@@ -114,3 +114,63 @@ URL de la API por defecto: `http://10.0.2.2:4000` (emulador Android). Se puede c
 - El módulo de cámara IA (`web/src/components/CameraDrowsiness.jsx`) está integrado en **Monitoreo** y registra eventos/alarmas vía `POST /api/telemetry/drowsiness-test` (antes estaba huérfano y roto).
 - Las alertas críticas reproducen una **alarma sonora en el panel** que se silencia al confirmar o cerrar el modal (RF3); los CRITICO/SOS repetidos no generan alertas duplicadas.
 - La app móvil carga el token persistido automáticamente (`ApiClient`), por lo que Historial y Configuración ya no fallan con 401.
+## Despliegue local con Docker
+
+### Requisitos
+
+- Docker Desktop instalado y en ejecución.
+- Git para clonar el repositorio.
+
+### Iniciar los servicios
+
+Desde la carpeta raíz del proyecto, ejecuta:
+
+```powershell
+docker compose up --build -d
+```
+
+Este comando construye la imagen del proyecto e inicia el backend Node.js y la base de datos MySQL.
+
+### Comprobar el estado
+
+```powershell
+docker compose ps
+Invoke-RestMethod http://localhost:4001/api/health
+docker compose logs --tail 80 backend
+```
+
+La respuesta de salud debe indicar `ok: True`, `conectado: True` y `motor: mysql`.
+
+- Aplicación: http://localhost:4001
+- API de salud: http://localhost:4001/api/health
+- MySQL: puerto 3306 dentro de la red de Docker Compose.
+
+El puerto 4001 del equipo se conecta al puerto 4000 del backend para evitar conflictos con otros servicios locales.
+
+### Persistencia de MySQL
+
+Docker Compose utiliza el volumen `smartroad_mysql_data` para conservar los datos de MySQL cuando se detienen o recrean los contenedores.
+
+Para detener los servicios sin eliminar los datos:
+
+```powershell
+docker compose down
+```
+
+Para iniciarlos nuevamente:
+
+```powershell
+docker compose up -d
+```
+
+**Importante:** no utilices `docker compose down -v` si deseas conservar los datos de la base de datos.
+
+### Variables de entorno
+
+Las contraseñas y claves configuradas por defecto son únicamente para desarrollo local. Antes de desplegar en un entorno real, configura contraseñas robustas y un `JWT_SECRET` seguro mediante un archivo `.env` local, sin subir secretos al repositorio.
+
+### Archivos de despliegue
+
+- `Dockerfile`: construye el frontend y prepara el backend.
+- `docker-compose.yml`: configura los servicios backend y MySQL, sus variables de entorno, comprobaciones de salud y persistencia.
+- `.dockerignore`: excluye archivos innecesarios o sensibles del contexto de construcción.
