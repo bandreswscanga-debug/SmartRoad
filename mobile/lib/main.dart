@@ -31,13 +31,22 @@ class _SmartRoadAppState extends State<SmartRoadApp> {
 
   void onSessionChanged(bool ok) => setState(() => hasSession = ok);
 
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('srs_token');
+    await prefs.remove('srs_user');
+    if (mounted) onSessionChanged(false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SmartRoad S.O.S',
       debugShowCheckedModeBanner: false,
       theme: buildDarkTheme(),
-      home: hasSession ? HomeScreen(onLogout: () => onSessionChanged(false)) : LoginScreen(onLogin: () => onSessionChanged(true)),
+          home: hasSession
+              ? HomeScreen(onLogout: logout)
+              : LoginScreen(onLogin: () => onSessionChanged(true)),
     );
   }
 }

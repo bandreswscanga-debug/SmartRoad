@@ -3,7 +3,7 @@ const BASE = '/api';
 async function request(path, options = {}) {
   const token = localStorage.getItem('srs_token');
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) headers.Authorization = 'Bearer ' + token;
   const timeout = options.timeout || 12000;
   const controller = timeout > 0 ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
@@ -11,9 +11,7 @@ async function request(path, options = {}) {
   if (res.status === 401) {
     localStorage.removeItem('srs_token');
     localStorage.removeItem('srs_user');
-    if (!window.location.pathname.includes('/login')) {
-      window.location.href = '/login';
-    }
+    if (!window.location.pathname.includes('/login')) window.location.href = '/login';
     throw new Error('Sesión expirada');
   }
   const data = await res.json().catch(() => ({}));
@@ -23,6 +21,7 @@ async function request(path, options = {}) {
 
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  registerDriver: (body) => request('/auth/register-driver', { method: 'POST', body: JSON.stringify(body) }),
   me: () => request('/auth/me'),
   users: () => request('/users'),
   createUser: (body) => request('/users', { method: 'POST', body: JSON.stringify(body) }),
@@ -32,37 +31,30 @@ export const api = {
   fatigue: (hours = 24) => request(`/dashboard/fatigue?hours=${hours}`),
   recentAlerts: () => request('/dashboard/recent-alerts'),
   heatmap: () => request('/dashboard/heatmap'),
-
   vehicles: () => request('/vehicles'),
   vehicle: (id) => request(`/vehicles/${id}`),
   patchVehicle: (id, body) => request(`/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-
   drivers: () => request('/drivers'),
   driver: (id) => request(`/drivers/${id}`),
-
+  driverProfile: () => request('/drivers/me/profile'),
+  driverEvents: () => request('/drivers/me/events'),
+  verifyDriver: (id, verificacion_estado = 'VERIFICADO') => request(`/drivers/${id}/verify`, { method: 'POST', body: JSON.stringify({ verificacion_estado }) }),
   events: (params = {}) => {
-    const qs = new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
-    ).toString();
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== '')).toString();
     return request(`/events${qs ? `?${qs}` : ''}`);
   },
   ackEvent: (id, atendidoPor) => request(`/events/${id}/ack`, { method: 'POST', body: JSON.stringify({ atendido_por: atendidoPor }) }),
-
   alerts: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/alerts${qs ? `?${qs}` : ''}`);
   },
   activeAlerts: () => request('/alerts/active'),
-  alertAction: (id, accion, meta) =>
-    request(`/alerts/${id}/actions`, { method: 'POST', body: JSON.stringify({ accion, meta }) }),
-
+  alertAction: (id, accion, meta) => request(`/alerts/${id}/actions`, { method: 'POST', body: JSON.stringify({ accion, meta }) }),
   safeZonesNear: (lat, lng) => request(`/safe-zones/near/${lat}/${lng}`),
-
   config: () => request('/config'),
   updateConfig: (body) => request('/config', { method: 'PUT', body: JSON.stringify(body) }),
-
-  testDrowsiness: (nivel, descripcion) =>
-    request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) })
+  testDrowsiness: (nivel, descripcion) => request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) })
+  ,testDriverDrowsiness: (nivel, descripcion) => request('/telemetry/driver-drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) })
 };
 
 export function sseUrl() {

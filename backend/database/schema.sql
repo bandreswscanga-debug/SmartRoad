@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
   placa VARCHAR(20),
   tipo_vehiculo VARCHAR(80),
   tipo_sangre VARCHAR(5),
+  documento VARCHAR(30),
+  licencia VARCHAR(30),
+  telefono VARCHAR(30),
+  empresa VARCHAR(120),
+  verificacion_estado ENUM('PENDIENTE','VERIFICADO','RECHAZADO') NOT NULL DEFAULT 'PENDIENTE',
   creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,13 +26,20 @@ CREATE TABLE IF NOT EXISTS conductores (
   nombre VARCHAR(120) NOT NULL,
   documento VARCHAR(30) NOT NULL UNIQUE,
   telefono VARCHAR(30),
-  licencia VARCHAR(10),
+  licencia VARCHAR(30),
   empresa VARCHAR(120),
+  usuario_id INT UNIQUE,
+  verificacion_estado ENUM('PENDIENTE','VERIFICADO','RECHAZADO') NOT NULL DEFAULT 'PENDIENTE',
+  placa VARCHAR(20),
+  tipo_vehiculo VARCHAR(80),
+  modelo_vehiculo INT,
+  tipo_sangre VARCHAR(5),
   jornada_horas DECIMAL(4,2) DEFAULT 0,
   ultimo_descanso VARCHAR(10),
   kilometros INT DEFAULT 0,
   fatiga_actual INT DEFAULT 0,
-  viajes INT DEFAULT 0
+  viajes INT DEFAULT 0,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS vehiculos (
@@ -67,6 +79,7 @@ CREATE TABLE IF NOT EXISTS eventos (
   riesgo ENUM('BAJO','MEDIO','CRITICO') NOT NULL DEFAULT 'MEDIO',
   canal ENUM('CAMARA','SENSOR') DEFAULT 'CAMARA',
   vehiculo_id INT,
+  conductor_id INT,
   lat DECIMAL(10,6),
   lng DECIMAL(10,6),
   velocidad INT,
@@ -76,6 +89,7 @@ CREATE TABLE IF NOT EXISTS eventos (
   atendido_por VARCHAR(120),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE
+  ,FOREIGN KEY (conductor_id) REFERENCES conductores(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS alertas (

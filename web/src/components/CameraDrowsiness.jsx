@@ -47,7 +47,7 @@ const LEVEL_DESC = {
 };
 
 export default function CameraDrowsiness() {
-  const { pushToast } = useApp();
+  const { pushToast, user } = useApp();
   const [phase, setPhase] = useState('idle');
   const [error, setError] = useState(null);
   const [level, setLevel] = useState('NORMAL');
@@ -107,11 +107,13 @@ export default function CameraDrowsiness() {
         nivel === 'CRITICO'
           ? 'Modo de prueba (cámara web del panel): signos críticos de somnolencia — cierre prolongado de ojos. Alarma sonora activada.'
           : 'Modo de prueba (cámara web del panel): signos moderados de somnolencia detectados.';
-      const res = await api.testDrowsiness(nivel, descripcion);
-      if (nivel === 'CRITICO') {
+      const res = user?.rol === 'conductor'
+        ? await api.testDriverDrowsiness(nivel, descripcion)
+        : await api.testDrowsiness(nivel, descripcion);
+      if (nivel === 'CRITICO' && user?.rol !== 'conductor') {
         pushToast(res.alert ? `Alerta crítica realtime: ${res.alert.vehiculo_codigo}` : 'Alerta crítica registrada', 'critical');
       } else {
-        pushToast('Evento de prueba registrado en historial', 'warning');
+        pushToast(user?.rol === 'conductor' ? 'Evento detectado y guardado en Mis eventos' : 'Evento de prueba registrado en historial', 'warning');
       }
     } catch (_e) {
       /* backend offline: la alarma local sigue funcionando */

@@ -122,26 +122,6 @@ function buildStore() {
     });
   });
 
-  state.alerts.push({
-    id: ++seq.alert,
-    tipo: 'SOMNOLENCIA_ALTA',
-    evento_id: state.events[state.events.length - 1].id,
-    vehiculo_id: 4,
-    vehiculo_codigo: 'TRK-004',
-    conductor_nombre: 'Ana Torres',
-    ruta: 'Ruta 45',
-    riesgo: 'CRITICO',
-    lat: 4.7152,
-    lng: -74.0801,
-    velocidad: 46,
-    descripcion: 'El sistema no detecta reacción del conductor ante la alarma sonora continua. Se requiere intervención urgente.',
-    estado: 'ACTIVA',
-    accion: null,
-    accion_meta: null,
-    timestamp: minsAgo(9),
-    iniciada_por: 'AUTO'
-  });
-
   state.safezones.push(
     { id: 1, nombre: 'Estación Terpel Km 41', tipo: 'PARQUEADERO_SEGURO', lat: 4.7180, lng: -74.0750 },
     { id: 2, nombre: 'Área de descanso Villeta', tipo: 'PARQUEADERO_SEGURO', lat: 5.0129, lng: -74.4739 },

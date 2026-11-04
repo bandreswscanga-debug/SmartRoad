@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,25 +22,31 @@ class ApiClient {
     token = prefs.getString('srs_token');
   }
 
-  Future<dynamic> _send(String method, String path, [Object? body]) async {
+  Future<Map<String, dynamic>> _send(String method, String path, [Object? body]) async {
     await _ensureToken();
     final uri = _u(path);
     final headers = _headers;
     final encoded = body == null ? null : jsonEncode(body);
-    final http.Response resp = switch (method) {
-      'GET' => await http.get(uri, headers: headers).timeout(const Duration(seconds: 12)),
-      'POST' => await http.post(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
-      'PUT' => await http.put(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12)),
-      _ => throw ApiException('Método no soportado: $method'),
-    };
-    final data = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode == 401) {
+    final http.Response response;
+    switch (method) {
+      case 'GET':
+        response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 12));
+      case 'POST':
+        response = await http.post(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12));
+      case 'PUT':
+        response = await http.put(uri, headers: headers, body: encoded).timeout(const Duration(seconds: 12));
+      default:
+        throw ApiException('Método no soportado: $method');
+    }
+    final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final data = decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    if (response.statusCode == 401) {
       token = null;
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('srs_token');
     }
-    if (resp.statusCode >= 400) {
-      throw ApiException(data['error']?.toString() ?? 'Error ${resp.statusCode}');
+    if (response.statusCode >= 400) {
+      throw ApiException(data['error']?.toString() ?? 'Error ${response.statusCode}');
     }
     return data;
   }
@@ -49,7 +54,13 @@ class ApiClient {
   Future<Map<String, dynamic>> login(String email, String password) async {
     final data = await _send('POST', '/api/auth/login', {'email': email, 'password': password});
     token = data['token'] as String?;
-    return data as Map<String, dynamic>;
+    return data;
+  }
+
+  Future<Map<String, dynamic>> registerDriver(Map<String, dynamic> body) async {
+    final data = await _send('POST', '/api/auth/register-driver', body);
+    token = data['token'] as String?;
+    return data;
   }
 
   Future<List<dynamic>> vehicles() async {
@@ -62,6 +73,23 @@ class ApiClient {
     return data['events'] as List<dynamic>? ?? [];
   }
 
+  Future<Map<String, dynamic>> driverProfile() async {
+    final data = await _send('GET', '/api/drivers/me/profile');
+    return data['driver'] as Map<String, dynamic>? ?? {};
+  }
+
+  Future<List<dynamic>> driverEvents() async {
+    final data = await _send('GET', '/api/drivers/me/events');
+    return data['events'] as List<dynamic>? ?? [];
+  }
+
+  Future<void> testDriverDrowsiness({required String nivel, String? descripcion}) async {
+    await _send('POST', '/api/telemetry/driver-drowsiness-test', {
+      'nivel': nivel,
+      if (descripcion != null) 'descripcion': descripcion,
+    });
+  }
+
   Future<Map<String, dynamic>> config() async {
     final data = await _send('GET', '/api/config');
     return data['config'] as Map<String, dynamic>? ?? {};
@@ -72,6 +100,13 @@ class ApiClient {
   }
 
   Future<void> reportSos({required String codigo, required double lat, required double lng}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = prefs.getString('srs_user');
+    final isDriver = user != null && user.contains('"rol":"conductor"');
+    if (isDriver) {
+      await _send('POST', '/api/telemetry/driver-sos', {'lat': lat, 'lng': lng});
+      return;
+    }
     await _send('POST', '/api/telemetry/event', {
       'codigo': codigo,
       'tipo': 'SOS',
@@ -87,6 +122,7 @@ class ApiClient {
 class ApiException implements Exception {
   final String message;
   ApiException(this.message);
+
   @override
   String toString() => message;
 }

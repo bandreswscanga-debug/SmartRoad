@@ -3,7 +3,6 @@ import { useApp } from '../store/AppContext';
 import { api } from '../api/client';
 import { Truck, Users, BellRing, Activity, AlertTriangle, ShieldCheck, ArrowRight, AlertOctagon, Radar, MapPin, Navigation } from 'lucide-react';
 import { StatCard, Semaphore, RiskBadge, Spinner } from '../components/ui';
-import LiveCamera from '../components/LiveCamera';
 import FatigueChart from '../components/FatigueChart';
 import RouteMap from '../components/RouteMap';
 import { Link } from 'react-router-dom';
@@ -31,8 +30,6 @@ export default function Dashboard() {
       clearInterval(id);
     };
   }, [refreshAll]);
-
-  const focus = vehicles.find((v) => v.riesgo === 'CRITICO') || vehicles[0];
 
   const riskDist = useMemo(() => {
     const d = { BAJO: 0, MEDIO: 0, CRITICO: 0 };
@@ -100,7 +97,6 @@ export default function Dashboard() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2 space-y-6">
-          <LiveCamera vehicle={focus} height={340} />
           <RouteMap vehicles={vehicles} zones={zones} height={420} />
         </div>
 

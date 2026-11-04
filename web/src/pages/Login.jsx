@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { ShieldAlert, Eye, EyeOff, AlertCircle, Loader2, Radio } from 'lucide-react';
 
@@ -17,8 +17,8 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
-      navigate('/', { replace: true });
+      const loggedUser = await login(email, password);
+      navigate(loggedUser.rol === 'conductor' ? '/conductor' : '/', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,7 +47,7 @@ export default function Login() {
 
         <form onSubmit={submit} className="card space-y-5 p-7" style={{ animation: 'rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) 160ms both' }}>
           <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-muted">
-            <Radio size={13} className="animate-pulse text-success" /> Acceso de administrador
+            <Radio size={13} className="animate-pulse text-success" /> Acceso al sistema
           </p>
 
           <div style={{ animation: 'rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) 220ms both' }}>
@@ -85,6 +85,11 @@ export default function Login() {
               >
                 {show ? <EyeOff size={16} className="animate-pulse" /> : <Eye size={16} />}
               </button>
+
+              <div className="border-t border-border pt-4 text-center">
+                <p className="text-xs text-muted">¿Eres conductor y aún no tienes cuenta?</p>
+                <Link to="/registro-conductor" className="mt-1 inline-block text-xs font-bold text-info hover:underline">Registrarme y validar mis documentos</Link>
+              </div>
             </div>
           </div>
 

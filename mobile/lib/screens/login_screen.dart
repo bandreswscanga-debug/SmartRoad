@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
 import '../theme.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onLogin});
@@ -144,6 +145,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Text('Ingresar al panel'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RegisterScreen(onRegistered: () {
+                            Navigator.of(context).pop();
+                            widget.onLogin();
+                          }),
+                        ),
+                      ),
+              icon: const Icon(Icons.person_add, size: 17),
+              label: const Text('Crear cuenta de conductor'),
             ),
             const SizedBox(height: 12),
             const Text(

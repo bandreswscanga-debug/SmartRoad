@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models.dart';
 import '../services/api.dart';
 import '../theme.dart';
@@ -34,7 +35,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _load({bool quiet = false}) async {
     try {
-      final raw = await _api.events();
+      final prefs = await SharedPreferences.getInstance();
+      final user = prefs.getString('srs_user');
+      final isDriver = user != null && user.contains('"rol":"conductor"');
+      final raw = isDriver ? await _api.driverEvents() : await _api.events();
       if (!mounted) return;
       setState(() {
         _events

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useApp } from '../store/AppContext';
-import { Users, Phone, FileText, Coffee, Route, Clock3, Download } from 'lucide-react';
+import { Users, Phone, FileText, Coffee, Route, Clock3, Download, FileDown, ShieldCheck } from 'lucide-react';
 import { RiskBadge, Meter, Spinner, Empty } from '../components/ui';
 import { fmtDate, toCsv, download } from '../utils/format';
+import { downloadDriverPdf } from '../utils/pdf';
 
 export default function Conductores() {
-  const { pushToast } = useApp();
+  const { pushToast, user } = useApp();
   const [drivers, setDrivers] = useState([]);
   const [detail, setDetail] = useState(null);
   const [detailData, setDetailData] = useState(null);
@@ -42,6 +43,37 @@ export default function Conductores() {
       { label: 'riesgo', key: 'riesgo' },
       { label: 'vehiculo', get: (r) => r.vehiculo?.codigo || 'Sin asignar' }
     ]));
+  };
+
+  const exportPdf = async () => {
+    if (!detailData?.driver) return;
+    const driver = detailData.driver;
+    const vehicle = detailData.vehicle || detail.vehiculo;
+    const events = detailData.fatiga || [];
+    try {
+      await downloadDriverPdf({
+        driver,
+        email: driver.email,
+        vehicle,
+        events,
+        filename: `smartroad-${driver.documento}.pdf`
+      });
+      pushToast('PDF descargado correctamente', 'success');
+    } catch (error) {
+      pushToast(error.message, 'critical');
+    }
+  };
+
+  const verifyDriver = async (status) => {
+    try {
+      const { driver } = await api.verifyDriver(detail.id, status);
+      setDetail(driver);
+      setDetailData((current) => ({ ...current, driver }));
+      setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, verificacion_estado: status } : item));
+      pushToast(status === 'VERIFICADO' ? 'Conductor verificado correctamente' : 'Estado de verificación actualizado', 'success');
+    } catch (error) {
+      pushToast(error.message, 'warning');
+    }
   };
 
   return (
@@ -166,6 +198,8 @@ export default function Conductores() {
               <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11px] text-muted">
                 Eventos registrados: <span className="font-bold text-text tabular">{detailData?.fatiga?.length || 0}</span>
               </div>
+              {user?.rol === 'admin' && detail.verificacion_estado === 'PENDIENTE' && <button onClick={() => verifyDriver('VERIFICADO')} className="btn-primary text-xs"><ShieldCheck size={14} /> Validar documentos</button>}
+              {detailData?.driver && <button onClick={exportPdf} className="btn-primary ml-auto text-xs"><FileDown size={14} /> Generar PDF</button>}
               {detailData?.fatiga?.slice(0, 5).map((e) => (
                 <span key={e.id} className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-[10px] text-muted">
                   {e.tipo?.replaceAll('_', ' ')} · {fmtDate(e.timestamp)}

@@ -1,4 +1,6 @@
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 
 const RIS = ['BAJO', 'MEDIO', 'CRITICO'];
 
@@ -59,6 +61,61 @@ class MemoryStore {
     return safe;
   }
 
+  async registerDriver(data) {
+    if (this.users.some((u) => u.email === data.email)) {
+      const error = new Error('El correo ya está registrado');
+      error.code = 'DUPLICATE';
+      throw error;
+    }
+    if (this.drivers.some((d) => d.documento === data.documento)) {
+      const error = new Error('El documento ya está registrado');
+      error.code = 'DUPLICATE';
+      throw error;
+    }
+    const user = {
+      id: this.next('user'),
+      nombre: data.nombre,
+      email: data.email,
+      password_hash: data.password_hash,
+      rol: 'conductor',
+      activo: 1,
+      documento: data.documento,
+      licencia: data.licencia,
+      telefono: data.telefono,
+      empresa: data.empresa,
+      placa: data.placa,
+      tipo_vehiculo: data.tipo_vehiculo,
+      tipo_sangre: data.tipo_sangre,
+      email: data.email,
+      verificacion_estado: 'PENDIENTE',
+      creado: new Date().toISOString()
+    };
+    this.users.push(user);
+    const driver = {
+      id: this.next('driver'),
+      usuario_id: user.id,
+      nombre: data.nombre,
+      documento: data.documento,
+      telefono: data.telefono,
+      licencia: data.licencia,
+      empresa: data.empresa,
+      verificacion_estado: 'PENDIENTE',
+      placa: data.placa,
+      tipo_vehiculo: data.tipo_vehiculo,
+      modelo_vehiculo: data.modelo_vehiculo || null,
+      tipo_sangre: data.tipo_sangre,
+      jornada_horas: 0,
+      ultimo_descanso: '—',
+      kilometros: 0,
+      fatiga_actual: 0,
+      viajes: 0,
+      riesgo: 'BAJO'
+    };
+    this.drivers.push(driver);
+    this.persist();
+    return { user: { ...user, password_hash: undefined }, driver: { ...driver } };
+  }
+
   async updateUser(id, patch) {
     const user = this.users.find((item) => item.id === Number(id));
     if (!user) return null;
@@ -105,6 +162,15 @@ class MemoryStore {
     return this.drivers.find((d) => d.id === Number(id)) || null;
   }
 
+  async setDriverVerification(id, status) {
+    const driver = await this.getDriver(id);
+    if (!driver) return null;
+    driver.verificacion_estado = status;
+    const user = this.users.find((item) => item.id === driver.usuario_id);
+    if (user) user.verificacion_estado = status;
+    return { ...driver };
+  }
+
   async listEvents(filter = {}) {
     let rows = [...this.events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     if (filter.tipo) rows = rows.filter((e) => e.tipo === filter.tipo);
@@ -133,7 +199,28 @@ class MemoryStore {
       timestamp: evt.timestamp || new Date().toISOString()
     };
     this.events.unshift(row);
+    if (row.conductor_id) this.persist();
     return { ...row };
+  }
+
+  async getDriverByUserId(userId) {
+    return this.drivers.find((d) => d.usuario_id === Number(userId)) || null;
+  }
+
+  async listDriverEvents(driverId) {
+    return this.events
+      .filter((event) => Number(event.conductor_id) === Number(driverId))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }
+
+  persist() {
+    if (!this.persistenceFile) return;
+    fs.mkdirSync(path.dirname(this.persistenceFile), { recursive: true });
+    fs.writeFileSync(this.persistenceFile, JSON.stringify({
+      users: this.users.filter((user) => user.rol === 'conductor'),
+      drivers: this.drivers.filter((driver) => driver.usuario_id),
+      events: this.events.filter((event) => event.conductor_id)
+    }, null, 2));
   }
 
   async updateEvent(id, patch) {
@@ -268,12 +355,43 @@ class MySqlStore {
   }
 
   async findUserByEmail(email) {
-    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE email = ? LIMIT 1', [email]);
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo, verificacion_estado FROM usuarios WHERE email = ? LIMIT 1', [email]);
     return this.row(rows);
   }
 
   async getUserById(id) {
-    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE id = ? LIMIT 1', [id]);
+    const rows = await this.q('SELECT id, nombre, email, password_hash, rol, activo, verificacion_estado FROM usuarios WHERE id = ? LIMIT 1', [id]);
+    return this.row(rows);
+  }
+
+  async registerDriver(data) {
+    try {
+      const [result] = await this.pool.execute(
+        `INSERT INTO usuarios
+          (nombre, email, password_hash, rol, activo, documento, licencia, telefono, empresa, placa, tipo_vehiculo, tipo_sangre)
+         VALUES (?, ?, ?, 'conductor', 1, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.nombre, data.email, data.password_hash, data.documento, data.licencia, data.telefono, data.empresa, data.placa, data.tipo_vehiculo, data.tipo_sangre]
+      );
+      await this.pool.execute(
+        `INSERT INTO conductores
+          (nombre, documento, telefono, licencia, empresa, usuario_id, placa, tipo_vehiculo, modelo_vehiculo, tipo_sangre)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.nombre, data.documento, data.telefono, data.licencia, data.empresa, result.insertId, data.placa, data.tipo_vehiculo, data.modelo_vehiculo || null, data.tipo_sangre]
+      );
+      return { user: await this.getUserById(result.insertId), driver: await this.getDriverByUserId(result.insertId) };
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        const duplicate = String(error.message).includes('email') ? 'El correo ya está registrado' : 'El documento ya está registrado';
+        const duplicateError = new Error(duplicate);
+        duplicateError.code = 'DUPLICATE';
+        throw duplicateError;
+      }
+      throw error;
+    }
+  }
+
+  async getDriverByUserId(userId) {
+    const rows = await this.q('SELECT * FROM conductores WHERE usuario_id = ? LIMIT 1', [userId]);
     return this.row(rows);
   }
 
@@ -350,8 +468,28 @@ class MySqlStore {
   }
 
   async getDriver(id) {
-    const rows = await this.q('SELECT * FROM conductores WHERE id = ? LIMIT 1', [id]);
+    const rows = await this.q('SELECT d.*, u.email FROM conductores d LEFT JOIN usuarios u ON u.id = d.usuario_id WHERE d.id = ? LIMIT 1', [id]);
     return this.row(rows);
+  }
+
+  async listDriverEvents(driverId) {
+    const rows = await this.q(
+      `SELECT e.*, v.codigo AS vehiculo_codigo, v.ruta, d.nombre AS conductor_nombre
+       FROM eventos e
+       LEFT JOIN vehiculos v ON v.id = e.vehiculo_id
+       LEFT JOIN conductores d ON d.id = e.conductor_id
+       WHERE e.conductor_id = ? ORDER BY e.timestamp DESC`,
+      [driverId]
+    );
+    return rows;
+  }
+
+  async setDriverVerification(id, status) {
+    const driver = await this.getDriver(id);
+    if (!driver) return null;
+    await this.q('UPDATE conductores SET verificacion_estado = ? WHERE id = ?', [status, id]);
+    if (driver.usuario_id) await this.q('UPDATE usuarios SET verificacion_estado = ?, activo = ? WHERE id = ?', [status, status === 'VERIFICADO' ? 1 : 0, driver.usuario_id]);
+    return this.getDriver(id);
   }
 
   async listEvents(filter = {}) {
@@ -395,7 +533,7 @@ class MySqlStore {
   }
 
   async createEvent(evt) {
-    const cols = ['tipo', 'riesgo', 'canal', 'vehiculo_id', 'lat', 'lng', 'velocidad', 'descripcion', 'respuesta_ms', 'timestamp'];
+    const cols = ['tipo', 'riesgo', 'canal', 'vehiculo_id', 'conductor_id', 'lat', 'lng', 'velocidad', 'descripcion', 'respuesta_ms', 'timestamp'];
     const vals = cols.map((c) => evt[c]);
     await this.q(
       `INSERT INTO eventos (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`,
@@ -519,6 +657,27 @@ async function createStore() {
     }
   }
   const store = new MemoryStore(memory);
+  const persistenceFile = path.resolve(__dirname, '../../data/driver-data.json');
+  if (fs.existsSync(persistenceFile)) {
+    try {
+      const saved = JSON.parse(fs.readFileSync(persistenceFile, 'utf8'));
+      for (const user of saved.users || []) {
+        if (!memory.users.some((item) => item.email === user.email)) memory.users.push(user);
+      }
+      for (const driver of saved.drivers || []) {
+        if (!memory.drivers.some((item) => item.documento === driver.documento)) memory.drivers.push(driver);
+      }
+      for (const event of saved.events || []) {
+        if (!memory.events.some((item) => item.id === event.id && item.conductor_id === event.conductor_id)) memory.events.push(event);
+      }
+      memory.seq.user = Math.max(memory.seq.user, ...memory.users.map((item) => Number(item.id) || 0));
+      memory.seq.driver = Math.max(memory.seq.driver, ...memory.drivers.map((item) => Number(item.id) || 0));
+      memory.seq.event = Math.max(memory.seq.event, ...memory.events.map((item) => Number(item.id) || 0));
+    } catch (error) {
+      console.warn('[storage] No se pudieron restaurar datos de conductores:', error.message);
+    }
+  }
+  store.persistenceFile = persistenceFile;
   store.motor = 'memory';
   store.fallbackReason = memory.fallbackReason || null;
   return store;

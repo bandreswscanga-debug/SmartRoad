@@ -37,9 +37,6 @@ INSERT INTO eventos (tipo, riesgo, canal, vehiculo_id, lat, lng, velocidad, desc
 ('SOMNOLENCIA_ALTA', 'CRITICO', 'CAMARA', 4, 4.7140, -74.0822, 88, 'Bostezos repetidos e inclinación de cabeza.', 1480, 1, 'Panel web', NOW() - INTERVAL 28 MINUTE),
 ('SOS', 'CRITICO', 'SENSOR', 4, 4.7152, -74.0801, 46, 'Señal SOS enviada al centro de control por no reacción a la alarma.', 1950, 0, NULL, NOW() - INTERVAL 9 MINUTE);
 
-INSERT INTO alertas (tipo, evento_id, vehiculo_id, riesgo, lat, lng, velocidad, descripcion, estado, iniciada_por, timestamp) VALUES
-('SOMNOLENCIA_ALTA', (SELECT MAX(id) FROM eventos), 4, 'CRITICO', 4.7152, -74.0801, 46, 'El sistema no detecta reacción del conductor ana torres (TRK-004) ante la alarma. Se recomienda intervención inmediata.', 'ACTIVA', 'AUTO', NOW() - INTERVAL 9 MINUTE);
-
 INSERT INTO zonas_seguras (nombre, tipo, lat, lng) VALUES
 ('Estación Terpel Km 41', 'PARQUEADERO_SEGURO', 4.7180, -74.0750),
 ('Área de descanso Villeta', 'PARQUEADERO_SEGURO', 5.0129, -74.4739),

@@ -1,0 +1,20 @@
+USE smartroad_sos;
+
+-- Ejecutar solo en bases creadas antes de la funcionalidad de registro de conductores.
+ALTER TABLE usuarios
+  ADD COLUMN IF NOT EXISTS documento VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS licencia VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS telefono VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS empresa VARCHAR(120),
+  ADD COLUMN IF NOT EXISTS verificacion_estado ENUM('PENDIENTE','VERIFICADO','RECHAZADO') NOT NULL DEFAULT 'PENDIENTE';
+
+ALTER TABLE conductores
+  ADD COLUMN IF NOT EXISTS usuario_id INT UNIQUE,
+  ADD COLUMN IF NOT EXISTS verificacion_estado ENUM('PENDIENTE','VERIFICADO','RECHAZADO') NOT NULL DEFAULT 'PENDIENTE',
+  ADD COLUMN IF NOT EXISTS placa VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS tipo_vehiculo VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS modelo_vehiculo INT,
+  ADD COLUMN IF NOT EXISTS tipo_sangre VARCHAR(5);
+
+ALTER TABLE eventos
+  ADD COLUMN IF NOT EXISTS conductor_id INT;

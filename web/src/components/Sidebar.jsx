@@ -17,6 +17,15 @@ const NAV = [
 
 export default function Sidebar({ open, onClose }) {
   const { activeAlerts, user } = useApp();
+  const isDriver = user?.rol === 'conductor';
+  const nav = isDriver
+    ? [
+        { to: '/conductor', label: 'Mi perfil', icon: LayoutDashboard, end: true },
+        { to: '/conductor/monitoreo', label: 'Monitoreo', icon: Radar },
+        { to: '/conductor/eventos', label: 'Mis eventos', icon: History },
+        { to: '/conductor/configuracion', label: 'Configuración', icon: Settings }
+      ]
+    : NAV;
   return (
     <>
       <aside
@@ -37,7 +46,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

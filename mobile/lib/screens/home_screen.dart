@@ -3,6 +3,7 @@ import '../theme.dart';
 import 'history_screen.dart';
 import 'sos_screen.dart';
 import 'config_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onLogout});
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const HistoryScreen(),
           const SosScreen(),
           const ConfigScreen(),
+          ProfileScreen(onLogout: widget.onLogout),
         ],
       ),
       bottomNavigationBar: Container(
@@ -43,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationDestination(icon: Icon(Icons.history), label: 'Historial'),
             NavigationDestination(icon: Icon(Icons.sos), label: 'SOS'),
             NavigationDestination(icon: Icon(Icons.tune), label: 'Config'),
+            NavigationDestination(icon: Icon(Icons.person), label: 'Perfil'),
           ],
         ),
       ),
