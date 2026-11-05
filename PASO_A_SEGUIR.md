@@ -11,8 +11,47 @@ git checkout instalacion
 git pull origin instalacion
 ```
 
+## Opción A: Despliegue con Docker (recomendado para cualquier computador)
+
+No necesitas instalar Node.js, pnpm ni MySQL manualmente. Solo necesitas **Docker** y **Docker Compose**.
+
+Desde la raíz del repo:
+
+```bash
+# 1. Copiar variables de entorno
+cp backend/.env.example backend/.env
+# Edita backend/.env si necesitas cambiar JWT_SECRET u otros valores
+
+# 2. Levantar todo (backend + MySQL)
+docker compose up -d --build
+
+# 3. Verificar que esté corriendo
+docker ps --filter name=smartroad
+```
+
+Endpoints disponibles:
+- API / Health: http://localhost:4000/api/health
+- API / Swagger: http://localhost:4000/api/docs
+- MySQL: localhost:3306
+
+Para detener:
+```bash
+docker compose down
+```
+
+Para ver logs:
+```bash
+docker compose logs -f backend
+```
+
+## Opción B: Desarrollo local sin Docker
+
 ## Requisitos previos
 
+**Opción A (Docker):**
+- Docker + Docker Compose
+
+**Opción B (desarrollo local):**
 - Node.js + pnpm (backend y panel web)
 - Flutter SDK (app móvil)
 - Cuenta en PlanetScale (MySQL) y Render (despliegue) si quieres llevarlo a la nube
@@ -100,11 +139,16 @@ Verifica: `http://localhost:4000/api/health` debe devolver `"motor":"mysql"`.
 ## Estructura del repo
 
 ```
-backend/   -> API Node.js + MySQL (puerto 4000)
-web/       -> Panel web React (puerto 5173)
-mobile/    -> App Flutter (conductores)
-scripts/   -> script de inicio rápido
-render.yaml-> configuración de despliegue Render
+backend/         -> API Node.js + MySQL (puerto 4000)
+backend/Dockerfile -> Imagen Docker del backend
+backend/docker-entrypoint.sh -> Entrypoint (espera MySQL, aplica esquema, inicia API)
+web/             -> Panel web React (puerto 5173)
+mobile/          -> App Flutter (conductores)
+scripts/         -> script de inicio rápido
+render.yaml      -> configuración de despliegue Render
+docker-compose.yml -> orquestación Docker (backend + MySQL)
+.dockerignore    -> archivos excluidos de la imagen Docker
+.env.example     -> plantilla de variables de entorno
 ```
 
 ## Rama resultante
