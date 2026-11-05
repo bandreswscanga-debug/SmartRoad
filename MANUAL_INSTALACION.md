@@ -1,7 +1,7 @@
 # MANUAL_INSTALACION.md - SmartRoad S.O.S
 
 Documentación base para despliegue del proyecto SmartRoad S.O.S.
-Este manual permite que cualquier equipo clone y desplegue el proyecto siguiendo EXCLUSIVAMENTE estas instrucciones, sin necesidad de hacer preguntas verbales al equipo original.
+Este manual permite que cualquier equipo clone y desplegue el proyecto siguiendo EXCLUSIVAMENTE estas instrucciones, sin necesidad de hacer preguntas verbales al equipo original. Todos los pasos están detallados y no se omite ninguno.
 
 ---
 
@@ -41,28 +41,38 @@ Ambos comandos deben imprimir una versión sin errores.
 
 ## Paso 1: Clonar el repositorio
 
+Desde una terminal, ejecutar:
+
 ```bash
 git clone https://github.com/bandreswscanga-debug/SmartRoad.git
 cd SmartRoad
 ```
 
----
-
-## Paso 2: Cambiar a la rama de despliegue
-
-Todas las instrucciones de este manual asumen la rama **`instalacion`**. No usar `main`.
+Verificar que se clonó correctamente:
 
 ```bash
-git checkout instalacion
+ls -la
 ```
 
-Verificar rama actual:
+Debe listar los archivos del repositorio incluyendo `docker-compose.yml`, `backend/`, `web/`, `mobile/`, `MANUAL_INSTALACION.md`, etc.
+
+---
+
+## Paso 2: Verificar rama activa
+
+Todas las instrucciones de este manual asumen la rama **`main`** (contiene todo el despliegue Docker y la documentación).
 
 ```bash
 git branch --show-current
 ```
 
-Debe imprimir: `instalacion`
+Debe imprimir: `main`
+
+Si no está en `main`, cambiar a ella:
+
+```bash
+git checkout main
+```
 
 ---
 
@@ -91,29 +101,39 @@ Generar un `JWT_SECRET` de 64 hex:
 openssl rand -hex 32
 ```
 
-El `docker-compose.yml` ya incluye valores por defecto para desarrollo local. Si solo se quiere probar en localhost, se puede omitir editar el `.env`.
+Copiar el resultado generado y pegarlo en `backend/.env` en la línea `JWT_SECRET=`.
+
+El `docker-compose.yml` ya incluye valores por defecto para desarrollo local. Si solo se quiere probar en localhost, se puede omitir editar el `.env` (usará los valores del compose).
 
 ---
 
 ## Paso 4: Levantar los servicios con Docker Compose
 
-Desde la raíz del repositorio:
+Desde la raíz del repositorio, ejecutar:
 
 ```bash
 docker compose up -d --build
 ```
 
-Qué hace este comando:
-- Descarga la imagen `mysql:8.0`
-- Construye la imagen del backend (`backend/Dockerfile`)
-- Crea la red `smartroadsos_default`
-- Crea el volumen `smartroadsos_smartroad_mysql_data`
-- Inicia MySQL y espera a que esté saludable
-- Inicia el backend (ejecuta `docker-entrypoint.sh` que aplica el esquema de BD y arranca el servidor)
+Qué hace este comando, en orden:
+
+1. Descarga la imagen `mysql:8.0` desde Docker Hub.
+2. Construye la imagen del backend usando `backend/Dockerfile`.
+3. Crea la red Docker `smartroadsos_default`.
+4. Crea el volumen persistente `smartroadsos_smartroad_mysql_data`.
+5. Inicia el contenedor `smartroad-mysql` y espera a que esté saludable (healthcheck).
+6. Inicia el contenedor `smartroad-backend` ejecutando `backend/docker-entrypoint.sh`, el cual:
+   - Espera a que MySQL esté disponible en el puerto 3306.
+   - Aplica el esquema de base de datos (`pnpm db:setup`).
+   - Inicia el servidor Node.js en el puerto 4000.
+
+Esperar a que ambos contenedores estén corriendo (puede tardar entre 1 y 3 minutos la primera vez por la descarga de imágenes e instalación de dependencias).
 
 ---
 
 ## Paso 5: Verificar que los servicios estén corriendo
+
+Ejecutar:
 
 ```bash
 docker ps --filter name=smartroad
@@ -127,7 +147,7 @@ smartroad-backend   Up X minutes              0.0.0.0:4000->4000/tcp
 smartroad-mysql     Up X minutes (healthy)    0.0.0.0:3306->3306/tcp
 ```
 
-Ambos contenedores deben mostrar `Up` (y MySQL debe mostrar `healthy`).
+Ambos contenedores deben mostrar `Up` (y MySQL debe mostrar `healthy`). Si alguno muestra `Exited`, `Restarting` o no aparece, consultar el `RUNBOOK_INCIDENTES.md`.
 
 ---
 
@@ -162,6 +182,14 @@ curl -s -I http://localhost:4000/api/docs
 ```
 
 Debe devolver `HTTP/1.1 200 OK` (o redirección HTML).
+
+Panel web (servido estáticamente por el backend):
+
+```bash
+curl -s -I http://localhost:4000/
+```
+
+Debe devolver `HTTP/1.1 200 OK`.
 
 ---
 
@@ -216,15 +244,33 @@ Si el puerto 4000 ya está en uso, modificar `docker-compose.yml` en la sección
 
 ---
 
-## Paso 9: Checklist de validación final
+## Paso 9: App móvil (Flutter) - opcional
 
-Antes de considerar el despliegue exitoso, verificar:
+La aplicación móvil para conductores está en el directorio `mobile/`. Requiere Flutter SDK instalado.
 
-- [ ] `git branch --show-current` imprime `instalacion`
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+En la pantalla de login, campo **Servidor**, poner:
+- Local: `http://localhost:4000`
+- Nube: `https://TU-SERVICIO.onrender.com`
+
+---
+
+## Paso 10: Checklist de validación final
+
+Antes de considerar el despliegue exitoso, verificar todos los siguientes puntos:
+
+- [ ] `git branch --show-current` imprime `main`
+- [ ] `docker --version` e `docker compose version` imprimen versiones sin error
 - [ ] `docker ps` muestra `smartroad-backend` y `smartroad-mysql` con estado `Up`
 - [ ] MySQL muestra estado `(healthy)`
 - [ ] `curl http://localhost:4000/api/health` devuelve `"ok":true` y `"conectado":true`
 - [ ] `curl -I http://localhost:4000/api/docs` devuelve `200 OK`
+- [ ] `curl -I http://localhost:4000/` devuelve `200 OK`
 
 Si algún punto falla, consultar el `RUNBOOK_INCIDENTES.md`.
 
@@ -232,7 +278,8 @@ Si algún punto falla, consultar el `RUNBOOK_INCIDENTES.md`.
 
 ## Notas importantes
 
-- No hacer commit directo sobre `main`. Usar ramas `feat/` o `fix/` y abrir Pull Request.
+- Todo el código, documentación y archivos Docker están en la rama `main`. No es necesario cambiar de rama.
 - Nunca commitear secretos (claves, contraseñas, tokens) en git. Usar `.env` local.
 - El volumen `smartroadsos_smartroad_mysql_data` persiste los datos de MySQL entre reinicios.
-- Para usar en otros computadores, solo se requiere clonar el repo, cambiar a `instalacion` y ejecutar `docker compose up -d --build`.
+- Para desplegar en otros computadores, solo se requiere clonar el repo, verificar que está en `main` y ejecutar `docker compose up -d --build`.
+- Solo se requiere Docker + Docker Compose en el computador destino (no se necesita instalar Node.js, pnpm ni MySQL manualmente).
