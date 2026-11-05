@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+*.log
+.git
+.gitignore
+README.md
+CHANGELOG.md
+DEPLOY.md
+INFORME.md
+PASO_A_SEGUIR.md
+Entregables
+docs
+mobile
+scripts

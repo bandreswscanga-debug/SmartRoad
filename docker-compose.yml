@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: smartroad-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: smartroad_sos
+      MYSQL_USER: smartroad
+      MYSQL_PASSWORD: smartroad
+    ports:
+      - "3306:3306"
+    volumes:
+      - smartroad_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: smartroad-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      MYSQL_URL: mysql://smartroad:smartroad@mysql:3306/smartroad_sos
+      JWT_SECRET: cambia-esta-clave-en-produccion-minimo-32-caracteres
+      TOKEN_EXPIRES: 12h
+      CORS_ORIGIN: http://localhost:5173,http://localhost:4173
+    ports:
+      - "4000:4000"
+    entrypoint: ["/app/backend/docker-entrypoint.sh"]
+
+volumes:
+  smartroad_mysql_data:
