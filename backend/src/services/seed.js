@@ -31,11 +31,14 @@ function buildStore() {
   let seq = { user: 0, vehicle: 0, driver: 0, event: 0, alert: 0 };
 
   const masterPassword = bcrypt.hashSync('Admin123', 10);
+  const docAdminPassword = bcrypt.hashSync('5304566767', 10);
   const userPassword = bcrypt.hashSync('Conductor123', 10);
 
   state.users.push(
     { id: ++seq.user, nombre: 'Administrador Demo', email: 'admin@smartroad-demo.com', password_hash: masterPassword, rol: 'admin', activo: 1, cedula: null, must_change_password: 0, creado: hoursAgo(240) },
-    { id: ++seq.user, nombre: 'Juan Pérez', email: 'juan@smartroad-demo.com', password_hash: userPassword, rol: 'conductor', activo: 1, cedula: '79123456', must_change_password: 1, creado: hoursAgo(240) }
+    { id: ++seq.user, nombre: 'Juan Pérez', email: 'juan@smartroad-demo.com', password_hash: userPassword, rol: 'conductor', activo: 1, cedula: '79123456', must_change_password: 1, creado: hoursAgo(240) },
+    // Credenciales documentadas en README/Login (modo fallback en memoria).
+    { id: ++seq.user, nombre: 'Oswal Wscanga', email: 'bandreswscanga@hgmail.com', password_hash: docAdminPassword, rol: 'admin', activo: 1, cedula: null, must_change_password: 0, creado: hoursAgo(240) }
   );
 
   state.drivers.push(

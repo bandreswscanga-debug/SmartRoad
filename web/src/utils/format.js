@@ -57,7 +57,8 @@ export function toCsv(rows, headers) {
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const head = headers.map((h) => h.label).join(',');
   const body = rows.map((r) => headers.map((h) => esc(h.key ? r[h.key] : h.get(r))).join(','));
-  return [head, ...body].join('\n');
+  // BOM + CRLF: Excel abre el archivo con acentos y columnas correctas.
+  return `\uFEFF${[head, ...body].join('\r\n')}`;
 }
 
 export function download(filename, content, mime = 'text/csv') {

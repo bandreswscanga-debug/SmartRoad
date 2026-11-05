@@ -1,19 +1,43 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Radar, Camera, History, BarChart3, Users, BellRing, Smartphone, Settings, ShieldAlert
+  BarChart3,
+  BellRing,
+  Camera,
+  History,
+  LayoutDashboard,
+  Radar,
+  Settings,
+  ShieldAlert,
+  Smartphone,
+  Users
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/monitoreo', label: 'Monitoreo', icon: Radar },
-  { to: '/camara', label: 'Cámara', icon: Camera },
-  { to: '/historial', label: 'Historial', icon: History },
-  { to: '/reportes', label: 'Reportes', icon: BarChart3 },
-  { to: '/conductores', label: 'Conductores', icon: Users },
-  { to: '/alertas', label: 'Alertas', icon: BellRing },
-  { to: '/app-movil', label: 'App Móvil', icon: Smartphone },
-  { to: '/configuracion', label: 'Configuración', icon: Settings }
+  {
+    group: 'Operación',
+    items: [
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/monitoreo', label: 'Monitoreo', icon: Radar },
+      { to: '/camara', label: 'Cámara IA', icon: Camera },
+      { to: '/alertas', label: 'Alertas', icon: BellRing }
+    ]
+  },
+  {
+    group: 'Inteligencia y análisis',
+    items: [
+      { to: '/historial', label: 'Historial', icon: History },
+      { to: '/reportes', label: 'Reportes', icon: BarChart3 }
+    ]
+  },
+  {
+    group: 'Administración',
+    items: [
+      { to: '/conductores', label: 'Conductores', icon: Users },
+      { to: '/app-movil', label: 'App Móvil', icon: Smartphone },
+      { to: '/configuracion', label: 'Configuración', icon: Settings }
+    ]
+  }
 ];
 
 export default function Sidebar({ open, onClose }) {
@@ -37,29 +61,38 @@ export default function Sidebar({ open, onClose }) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
-                  isActive
-                    ? 'bg-danger/15 text-danger-bright border border-danger/25'
-                    : 'text-muted border border-transparent hover:bg-surface-2 hover:text-text'
-                }`
-              }
-            >
-              <Icon size={17} className="transition-transform group-hover:scale-110" />
-              {label}
-              {label === 'Alertas' && activeAlerts.length > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white animate-pulse-ring">
-                  {activeAlerts.length}
-                </span>
-              )}
-            </NavLink>
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+          {NAV.map((section) => (
+            <div key={section.group}>
+              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-faint">
+                {section.group}
+              </p>
+              <div className="space-y-1">
+                {section.items.map(({ to, label, icon: Icon, end }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13px] font-semibold transition-all ${
+                        isActive
+                          ? 'bg-danger/15 text-danger-bright border border-danger/25'
+                          : 'text-muted border border-transparent hover:bg-surface-2 hover:text-text'
+                      }`
+                    }
+                  >
+                    <Icon size={17} className="transition-transform group-hover:scale-110" />
+                    {label}
+                    {label === 'Alertas' && activeAlerts.length > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white animate-pulse-ring">
+                        {activeAlerts.length}
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

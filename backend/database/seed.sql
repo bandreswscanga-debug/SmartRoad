@@ -1,7 +1,7 @@
 USE smartroad_sos;
 
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo, cedula, must_change_password) VALUES
-('Administrador Demo', 'bandreswscanga@hgmail.com', '$2a$10$I86quLLmyNWNq/1g8jQY7em2maEhcCe5SAxgCg5zgcrelqm3bbXDS', 'admin', 1, NULL, 0),
+('Administrador Demo', 'bandreswscanga@hgmail.com', '$2a$10$Mj5sF8x/U2.kKDVsYuDoSeK7aWeZs7TcSJkr7rKpW30RJvy6QO9gq', 'admin', 1, NULL, 0),
 ('Juan Pérez', 'juan@smartroad-demo.com', '$2a$10$QnMsPwTxwC37TMN4XnjmF.CRJw1TD9xks/DBEh7eIeQexcReUUFBO', 'conductor', 1, '79123456', 1)
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);
 

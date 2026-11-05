@@ -93,8 +93,7 @@ async function analyzeEvent({ evento, vehiculo, conductor }) {
 }
 
 // Analiza una imagen de la cámara (dataURL base64 o URL http).
-async function analyzeImage({ image, prompt }) {
-  if (!image || typeof image !== 'string') {
+async function analyzeImage({ image, prompt }) {  if (!image || typeof image !== 'string') {
     return { ok: false, status: 400, error: 'Imagen requerida (dataURL base64 o URL).' };
   }
   const isUrl = /^https?:\/\//i.test(image);
@@ -113,4 +112,34 @@ async function analyzeImage({ image, prompt }) {
   );
 }
 
-module.exports = { chat, analyzeEvent, analyzeImage, configured, textModel, visionModel };
+// Copiloto operativo: responde preguntas con el contexto real de la flota.
+// `historial` es una lista corta de mensajes {role, content} del chat web.
+async function consultar({ pregunta, historial = [], contexto = '' }) {
+  const limpio = String(pregunta || '').trim();
+  if (!limpio) {
+    return { ok: false, status: 400, error: 'Escribe una pregunta para el copiloto.' };
+  }
+  const system = [
+    'Eres SmartRoad Copilot, el asistente operativo del centro de control SmartRoad S.O.S.',
+    'Respondes en español claro, breve y accionable. Usa listas cuando ayuden.',
+    'Trabajas con detección de somnolencia, fatiga, alertas SOS, conductores, vehículos, zonas seguras y reportes.',
+    'Nunca inventes datos: si el contexto no alcanza, dilo y pide el dato que falta.',
+    'Prioriza la seguridad: ante riesgo CRITICO recomienda pausa inmediata, avisar al conductor y activar el protocolo SOS.',
+    'Máximo 220 palabras por respuesta.',
+    '',
+    'CONTEXTO ACTUAL DEL SISTEMA:',
+    contexto || '(sin contexto disponible)'
+  ].join('\n');
+
+  const previos = (Array.isArray(historial) ? historial : [])
+    .slice(-6)
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+    .map((m) => ({ role: m.role, content: String(m.content).slice(0, 1200) }));
+
+  return chat(
+    [{ role: 'system', content: system }, ...previos, { role: 'user', content: limpio.slice(0, 1200) }],
+    { maxTokens: 700, temperature: 0.35 }
+  );
+}
+
+module.exports = { chat, analyzeEvent, analyzeImage, consultar, configured, textModel, visionModel };

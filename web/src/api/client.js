@@ -72,6 +72,26 @@ export const api = {
   testDrowsiness: (nivel, descripcion) =>
     request('/telemetry/drowsiness-test', { method: 'POST', body: JSON.stringify({ nivel, descripcion }) }),
 
+  iaStatus: () => request('/ia/estado'),
+  iaResumen: () => request('/ia/resumen', { timeout: 30000 }),
+  iaConsulta: (pregunta, historial = []) =>
+    request('/ia/consulta', {
+      method: 'POST',
+      timeout: 30000,
+      body: JSON.stringify({ pregunta, historial })
+    }),
+  analyzeImage: (image, prompt) =>
+    request('/ia/analizar-imagen', {
+      method: 'POST',
+      timeout: 40000,
+      body: JSON.stringify({ image, prompt })
+    }),
+  analyzeEvent: (body) =>
+    request('/ia/analizar', { method: 'POST', timeout: 30000, body: JSON.stringify(body) }),
+
+  resendWelcome: (id) =>
+    request(`/drivers/${id}/resend-welcome`, { method: 'POST', timeout: 30000 }),
+
   appInfo: () => request('/app-info')
 };
 

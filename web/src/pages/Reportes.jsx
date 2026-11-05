@@ -4,12 +4,14 @@ import { useApp } from '../store/AppContext';
 import { Download, TrendingDown, AlertTriangle, Clock3, CalendarRange } from 'lucide-react';
 import { StatCard, Spinner, Empty } from '../components/ui';
 import FatigueChart from '../components/FatigueChart';
+import ExportMenu from '../components/ExportMenu';
 import { toCsv, download, EVENT_LABEL, RISK_COLOR, timeAgo } from '../utils/format';
+import { downloadHtmlReport, exportExcel, printReport } from '../utils/report';
 
 const DONUT_COLORS = ['#ff4d5a', '#f5b92e', '#4aa8ff', '#a78bfa', '#2bd67b', '#ef2d3c'];
 
 export default function Reportes() {
-  const { vehicles } = useApp();
+  const { vehicles, user } = useApp();
   const [hours, setHours] = useState(24);
   const [fatigue, setFatigue] = useState(null);
   const [events, setEvents] = useState([]);
@@ -60,6 +62,101 @@ export default function Reportes() {
       { label: 'conductor', key: 'conductor_nombre' },
       { label: 'respuesta_ms', key: 'respuesta_ms' }
     ]));
+  };
+
+  const exportColumns = [
+    { label: 'Fecha', format: (r) => new Date(r.timestamp).toLocaleString('es-CO') },
+    { label: 'Tipo', format: (r) => EVENT_LABEL[r.tipo] || r.tipo },
+    { label: 'Riesgo', key: 'riesgo' },
+    { label: 'Vehículo', key: 'vehiculo_codigo' },
+    { label: 'Conductor', key: 'conductor_nombre' },
+    { label: 'Velocidad', format: (r) => (r.velocidad != null ? `${r.velocidad} km/h` : '—') },
+    { label: 'Respuesta', format: (r) => (r.respuesta_ms ? `${r.respuesta_ms} ms` : '—') },
+    { label: 'Descripción', key: 'descripcion' }
+  ];
+
+  const reportConfig = () => {
+    const criticos = events.filter((e) => e.riesgo === 'CRITICO').length;
+    const gestionadas = alerts.filter((a) => a.estado !== 'ACTIVA').length;
+    const activas = alerts.filter((a) => a.estado === 'ACTIVA').length;
+    return {
+      filename: `smartroad-reporte-${new Date().toISOString().slice(0, 10)}`,
+      title: 'Reporte operativo de fatiga y alertas',
+      subtitle: `Analítica de la flotilla · últimos ${hours} horas`,
+      meta: [
+        { label: 'Generado por', value: user?.nombre || 'Operador' },
+        { label: 'Ventana analizada', value: `${hours} horas` },
+        { label: 'Vehículos', value: vehicles.length },
+        { label: 'Eventos', value: events.length }
+      ],
+      kpis: [
+        { label: 'Anomalías', value: events.length, tone: 'danger', sub: 'micro sueños, fatiga y distracción' },
+        { label: 'Críticos', value: criticos, tone: 'danger', sub: 'requieren pausa / SOS' },
+        { label: 'Alertas gestionadas', value: gestionadas, tone: 'success', sub: `${activas} activa(s)` },
+        { label: 'Respuesta media', value: respLabel(events), tone: 'warning', sub: 'objetivo ≤ 2 s (RNF1)' }
+      ],
+      sections: [
+        {
+          title: 'Distribución por tipo de evento',
+          description: 'Conteo de anomalías registradas en la ventana analizada.',
+          columns: [
+            { label: 'Tipo', format: (r) => EVENT_LABEL[r.tipo] || r.tipo },
+            { label: 'Eventos', key: 'total', align: 'right' }
+          ],
+          rows: dist.map(([tipo, total]) => ({ tipo, total }))
+        },
+        {
+          title: 'Riesgo de los eventos',
+          description: 'Clasificación por nivel de riesgo.',
+          columns: [
+            { label: 'Nivel', key: 'nivel' },
+            { label: 'Eventos', key: 'total', align: 'right' },
+            { label: 'Porcentaje', format: (r) => `${r.pct} %`, align: 'right' }
+          ],
+          rows: Object.entries(riskDist).map(([nivel, total]) => ({
+            nivel,
+            total,
+            pct: events.length ? Math.round((total / events.length) * 100) : 0
+          }))
+        },
+        {
+          title: 'Carga por conductor',
+          description: 'Eventos y críticos asociados a cada conductor.',
+          columns: [
+            { label: 'Conductor', key: 'nombre' },
+            { label: 'Eventos', key: 'eventos', align: 'right' },
+            { label: 'Críticos', key: 'criticos', align: 'right' }
+          ],
+          rows: driverLoad.map(([nombre, d]) => ({ nombre, eventos: d.eventos, criticos: d.criticos }))
+        },
+        {
+          title: 'Eventos recientes',
+          description: 'Detalle de los eventos incluidos en el reporte.',
+          columns: exportColumns,
+          rows: events.slice(0, 120)
+        }
+      ],
+      notes: [
+        'Los niveles CRÍTICOS deben generar una pausa inmediata y, si aplica, activar el protocolo SOS.',
+        'El reporte incluye los eventos disponibles en la ventana seleccionada; puede exportarse también en Excel u HTML.',
+        'La analítica es una ayuda operativa y no reemplaza la revisión humana.'
+      ],
+      footer: `SmartRoad S.O.S · Reporte de ${events.length} evento(s)`
+    };
+  };
+
+  const exportPdf = () => printReport(reportConfig());
+  const exportHtml = () => downloadHtmlReport(reportConfig());
+  const exportXls = () => {
+    const cfg = reportConfig();
+    exportExcel({
+      filename: cfg.filename,
+      title: cfg.title,
+      subtitle: cfg.subtitle,
+      meta: cfg.meta,
+      columns: exportColumns,
+      rows: events
+    });
   };
 
   const detect = vehicles.filter((v) => v.riesgo === 'CRITICO').length;
@@ -145,9 +242,14 @@ export default function Reportes() {
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <p className="section-title">Eventos recientes para el reporte</p>
-          <button onClick={exportReport} className="btn-ghost text-xs">
-            <Download size={14} /> Descargar reporte
-          </button>
+          <ExportMenu
+            label="Descargar reporte"
+            onPdf={exportPdf}
+            onExcel={exportXls}
+            onHtml={exportHtml}
+            onCsv={exportReport}
+            disabled={!events.length}
+          />
         </div>
         <div className="max-h-[360px] overflow-y-auto">
           {events.length === 0 ? (

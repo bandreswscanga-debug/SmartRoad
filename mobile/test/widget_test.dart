@@ -10,6 +10,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ingresar al panel'), findsOneWidget);
-    expect(find.text('Acceso admin: bandreswscanga@hgmail.com'), findsOneWidget);
+    expect(find.text('Acceso conductor: tu correo y tu cédula como clave inicial'), findsOneWidget);
   });
 }

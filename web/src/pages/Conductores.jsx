@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useApp } from '../store/AppContext';
-import { Users, Phone, FileText, Coffee, Route, Clock3, Download, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { Users, Phone, FileText, Coffee, Route, Clock3, Download, UserPlus, Pencil, Trash2, Mail, CheckCircle2, Circle, PackageCheck, RefreshCw, AlertCircle } from 'lucide-react';
 import { RiskBadge, Meter, Spinner, Empty } from '../components/ui';
+import ExportMenu from '../components/ExportMenu';
 import { fmtDate, toCsv, download } from '../utils/format';
+import { downloadHtmlReport, exportExcel, printReport } from '../utils/report';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const empty = { nombre: '', documento: '', email: '', placa: '', telefono: '', licencia: '', empresa: '', tipo_vehiculo: '', tipo_sangre: '' };
@@ -20,14 +22,16 @@ export default function Conductores() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState(null);
   const [shared, setShared] = useState(null); // credenciales listas para compartir
-  const [apkUrl, setApkUrl] = useState(null);
+  const [appInfo, setAppInfo] = useState(null);
+  const [resending, setResending] = useState(null);
 
+  const apkUrl = appInfo?.apkUrl || null;
   const isAdmin = user?.rol === 'admin';
 
   const load = () => api.drivers().then((d) => setDrivers(d.drivers)).catch(() => {});
   useEffect(() => {
     load();
-    api.appInfo().then((a) => setApkUrl(a.apkUrl || null)).catch(() => {});
+    api.appInfo().then(setAppInfo).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -96,16 +100,27 @@ export default function Conductores() {
         const created = await api.createDriver(payload);
         // Tarjeta para compartir credenciales (WhatsApp/copiar): funciona sin correo.
         setShared({
+          id: created.driver?.id,
           nombre: created.driver?.nombre || payload.nombre,
           email: created.driver?.email || payload.email,
           cedula: created.driver?.documento || payload.documento,
-          telefono: created.driver?.telefono || ''
+          telefono: created.driver?.telefono || '',
+          emailEnviado: Boolean(created.email_enviado),
+          emailVia: created.email_via || null,
+          emailApk: created.email_apk || null,
+          emailPreview: created.email_preview || null,
+          emailError: created.email_error || null
         });
         if (created.email_enviado) {
+          const apkMsg = created.email_apk?.adjunto
+            ? ' con el APK adjunto'
+            : apkUrl
+              ? ' con enlace de descarga del APK'
+              : '';
           pushToast(
             created.email_preview
-              ? `Conductor registrado y correo enviado. Verlo en: ${created.email_preview}`
-              : 'Conductor registrado y correo enviado.',
+              ? `Conductor registrado y correo enviado${apkMsg}. Verlo en: ${created.email_preview}`
+              : `Conductor registrado y correo enviado${apkMsg}.`,
             'success'
           );
         } else {
@@ -121,6 +136,37 @@ export default function Conductores() {
       setFormError(err.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resend = async (d) => {
+    if (!d?.email) {
+      pushToast('El conductor no tiene correo registrado', 'warning');
+      return;
+    }
+    setResending(d.id);
+    try {
+      const res = await api.resendWelcome(d.id);
+      const apkMsg = res.email_apk?.adjunto
+        ? 'con el APK adjunto'
+        : res.email_apk?.url
+          ? 'con enlace de descarga del APK'
+          : '';
+      pushToast(`Correo reenviado a ${d.email}${apkMsg ? ` ${apkMsg}` : ''}`, 'success');
+      if (shared && shared.email === d.email) {
+        setShared((s) => ({
+          ...s,
+          emailEnviado: true,
+          emailVia: res.email_via || s?.emailVia,
+          emailApk: res.email_apk || s?.emailApk,
+          emailPreview: res.email_preview || s?.emailPreview,
+          emailError: null
+        }));
+      }
+    } catch (err) {
+      pushToast(err.message || 'No se pudo reenviar el correo', 'critical');
+    } finally {
+      setResending(null);
     }
   };
 
@@ -156,6 +202,75 @@ export default function Conductores() {
       { label: 'riesgo', key: 'riesgo' },
       { label: 'vehiculo', get: (r) => r.vehiculo?.codigo || 'Sin asignar' }
     ]));
+  };
+
+  const exportColumns = [
+    { label: 'Conductor', key: 'nombre' },
+    { label: 'Documento', key: 'documento' },
+    { label: 'Correo', key: 'email' },
+    { label: 'Placa', key: 'placa' },
+    { label: 'Teléfono', key: 'telefono' },
+    { label: 'Licencia', key: 'licencia' },
+    { label: 'Empresa', key: 'empresa' },
+    { label: 'Jornada', format: (r) => `${r.jornada_horas ?? 0} h` },
+    { label: 'Último descanso', key: 'ultimo_descanso' },
+    { label: 'Kilómetros', format: (r) => `${r.kilometros ?? 0} km` },
+    { label: 'Fatiga', format: (r) => `${Math.round(r.fatiga_actual ?? 0)} %` },
+    { label: 'Riesgo', key: 'riesgo' },
+    { label: 'Vehículo', format: (r) => r.vehiculo?.codigo || 'Sin asignar' }
+  ];
+
+  const reportConfig = () => {
+    const criticos = drivers.filter((d) => d.riesgo === 'CRITICO').length;
+    const conVehiculo = drivers.filter((d) => d.vehiculo?.codigo).length;
+    const fatigaMedia = drivers.length
+      ? Math.round(drivers.reduce((a, d) => a + (Number(d.fatiga_actual) || 0), 0) / drivers.length)
+      : 0;
+    return {
+      filename: `smartroad-conductores-${new Date().toISOString().slice(0, 10)}`,
+      title: 'Reporte de conductores y estado de la flota',
+      subtitle: 'Seguimiento de jornada, fatiga y vehículo asignado (RF10)',
+      meta: [
+        { label: 'Generado por', value: user?.nombre || 'Operador' },
+        { label: 'Conductores', value: drivers.length },
+        { label: 'Con vehículo', value: conVehiculo }
+      ],
+      kpis: [
+        { label: 'Conductores', value: drivers.length, tone: 'info', sub: 'registrados en el sistema' },
+        { label: 'En riesgo crítico', value: criticos, tone: 'danger', sub: 'requieren pausa inmediata' },
+        { label: 'Fatiga media', value: `${fatigaMedia} %`, tone: fatigaMedia >= 70 ? 'danger' : fatigaMedia >= 50 ? 'warning' : 'success', sub: 'índice ponderado' },
+        { label: 'Con vehículo', value: conVehiculo, tone: 'success', sub: 'asignación activa' }
+      ],
+      sections: [
+        {
+          title: 'Detalle de conductores',
+          description: 'Datos de contacto, jornada, fatiga y vehículo asignado.',
+          columns: exportColumns,
+          rows: drivers,
+          empty: 'Todavía no hay conductores registrados.'
+        }
+      ],
+      notes: [
+        'Los conductores en riesgo CRÍTICO deben recibir una pausa y seguimiento inmediato.',
+        'El correo de bienvenida incluye las credenciales y el acceso a la app (APK adjunto o enlace de descarga).',
+        'Verifique que el correo y el teléfono de cada conductor estén actualizados.'
+      ],
+      footer: `SmartRoad S.O.S · ${drivers.length} conductor(es)`
+    };
+  };
+
+  const exportPdf = () => printReport(reportConfig());
+  const exportHtml = () => downloadHtmlReport(reportConfig());
+  const exportXls = () => {
+    const cfg = reportConfig();
+    exportExcel({
+      filename: cfg.filename,
+      title: cfg.title,
+      subtitle: cfg.subtitle,
+      meta: cfg.meta,
+      columns: exportColumns,
+      rows: drivers
+    });
   };
 
   return (
@@ -196,15 +311,68 @@ export default function Conductores() {
       )}
 
       {shared && (
-        <div className="card space-y-3 border-success/40 p-5">
-          <p className="section-title">Credenciales de {shared.nombre} — listas para compartir</p>
+        <div className="card space-y-4 border-success/40 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="section-title">Onboarding de {shared.nombre}</p>
+              <p className="mt-1 text-xs text-muted">
+                La cuenta, el correo y el acceso a la app se generan automáticamente. Verifique los tres pasos.
+              </p>
+            </div>
+            <button type="button" className="btn-ghost px-3 py-2 text-[11px]" onClick={() => setShared(null)}>
+              Cerrar
+            </button>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <OnboardingStep
+              done
+              icon={CheckCircle2}
+              title="1. Cuenta creada"
+              desc="Usuario y vehículo asignados"
+            />
+            <OnboardingStep
+              done={Boolean(shared.emailEnviado)}
+              icon={shared.emailEnviado ? CheckCircle2 : AlertCircle}
+              title="2. Correo enviado"
+              desc={
+                shared.emailEnviado
+                  ? `${shared.emailVia ? `Vía ${shared.emailVia}` : 'Enviado'} a ${shared.email}`
+                  : shared.emailError || 'Pendiente: configure SMTP o Resend'
+              }
+              tone={shared.emailEnviado ? 'success' : 'warning'}
+            />
+            <OnboardingStep
+              done={Boolean(shared.emailApk?.adjunto || apkUrl)}
+              icon={PackageCheck}
+              title="3. APK disponible"
+              desc={
+                shared.emailApk?.adjunto
+                  ? `Adjunto en el correo${shared.emailApk.tamano_mb ? ` (${shared.emailApk.tamano_mb} MB)` : ''}`
+                  : apkUrl
+                    ? 'Enlace de descarga incluido en el correo'
+                    : 'Configure APK_FILE_PATH o APK_DOWNLOAD_URL'
+              }
+              tone={shared.emailApk?.adjunto ? 'success' : apkUrl ? 'info' : 'warning'}
+            />
+          </div>
+
           <div className="grid gap-2 text-xs sm:grid-cols-3">
             <p className="rounded-lg bg-surface-2 px-3 py-2">Usuario: <b>{shared.email}</b></p>
             <p className="rounded-lg bg-surface-2 px-3 py-2">Clave inicial: <b>{shared.cedula}</b></p>
             <p className="rounded-lg bg-surface-2 px-3 py-2">
-              App: {apkUrl ? <a className="font-bold text-info underline" href={apkUrl} target="_blank" rel="noreferrer">Descargar APK</a> : 'el admin comparte el instalador (APK)'}
+              App: {apkUrl ? <a className="font-bold text-info underline" href={apkUrl} target="_blank" rel="noreferrer">Descargar APK{appInfo?.apkTamanoMb ? ` (${appInfo.apkTamanoMb} MB)` : ''}</a> : 'el admin comparte el instalador (APK)'}
             </p>
           </div>
+
+          {!shared.emailApk?.adjunto && apkUrl && appInfo?.apkTamanoMb && (
+            <p className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-[11px] text-muted">
+              El APK pesa {appInfo.apkTamanoMb} MB y supera el límite de adjuntos del correo
+              ({appInfo.apkAdjuntoMaxMb} MB). El correo incluye un botón de descarga directa; si desea adjuntarlo,
+              compile un APK más liviano con <span className="font-mono text-text">flutter build apk --split-per-abi</span>.
+            </p>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -244,7 +412,22 @@ export default function Conductores() {
                 </a>
               );
             })()}
-            <button type="button" className="btn-ghost" onClick={() => setShared(null)}>Cerrar</button>
+            {shared.id && (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => resend({ id: shared.id, email: shared.email, nombre: shared.nombre })}
+                disabled={resending === shared.id}
+              >
+                {resending === shared.id ? <RefreshCw size={14} className="animate-spin" /> : <Mail size={14} />}
+                Reenviar correo
+              </button>
+            )}
+            {apkUrl && (
+              <a className="btn-ghost" href={apkUrl} target="_blank" rel="noreferrer">
+                <Download size={14} /> Descargar APK
+              </a>
+            )}
           </div>
         </div>
       )}
@@ -253,9 +436,13 @@ export default function Conductores() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <p className="section-title">Seguimiento del estado de cada conductor (RF10)</p>
           {drivers.length > 0 && (
-            <button onClick={exportCsv} className="btn-ghost text-xs">
-              <Download size={14} /> Exportar CSV
-            </button>
+            <ExportMenu
+              label="Exportar"
+              onPdf={exportPdf}
+              onExcel={exportXls}
+              onHtml={exportHtml}
+              onCsv={exportCsv}
+            />
           )}
         </div>
         {drivers.length === 0 ? (
@@ -313,6 +500,14 @@ export default function Conductores() {
                       </button>
                       {isAdmin && (
                         <>
+                          <button
+                            onClick={() => resend(d)}
+                            className="text-purple hover:opacity-80"
+                            title="Reenviar correo de bienvenida con APK"
+                            disabled={resending === d.id}
+                          >
+                            {resending === d.id ? <RefreshCw size={15} className="animate-spin" /> : <Mail size={15} />}
+                          </button>
                           <button onClick={() => startEdit(d)} className="text-info hover:opacity-80" title="Editar">
                             <Pencil size={15} />
                           </button>
@@ -396,6 +591,25 @@ export default function Conductores() {
         </div>
       )}
       {!drivers.length && <Spinner label="Cargando conductores…" />}
+    </div>
+  );
+}
+
+function OnboardingStep({ done, icon: Icon, title, desc, tone = 'success' }) {
+  const color = tone === 'warning' ? 'text-warning' : tone === 'info' ? 'text-info' : 'text-success';
+  const border = tone === 'warning' ? 'border-warning/40 bg-warning/5' : tone === 'info' ? 'border-info/40 bg-info/5' : 'border-success/30 bg-success/5';
+  return (
+    <div className={`rounded-xl border p-3.5 ${border}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${tone === 'warning' ? 'bg-warning/15 text-warning' : tone === 'info' ? 'bg-info/15 text-info' : 'bg-success/15 text-success'}`}>
+          <Icon size={15} />
+        </span>
+        <span className={`text-[9px] font-bold uppercase tracking-wider ${color}`}>
+          {done ? 'Listo' : 'Pendiente'}
+        </span>
+      </div>
+      <p className="mt-2 text-[11px] font-bold text-text">{title}</p>
+      <p className="mt-0.5 text-[10px] leading-snug text-faint">{desc}</p>
     </div>
   );
 }

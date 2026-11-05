@@ -25,9 +25,28 @@ Plan gratuito sugerido: **Render** (API+web) + **PlanetScale** (MySQL).
 | `JWT_SECRET` * | 64 hex generados (mínimo 32 caracteres) |
 | `MYSQL_URL` * | connection string de PlanetScale |
 | `TELEMETRY_API_KEY` | cualquiera (para ESP32/app) |
-| `SMTP_HOST/PORT/USER/PASS/MAIL_FROM` | Brevo (ya los tiene en el `.env` local) |
-| `APK_DOWNLOAD_URL` | link de Drive del APK |
+| `SMTP_HOST/PORT/USER/PASS/MAIL_FROM` | Brevo/Gmail (ya los tiene en el `.env` local) |
+| `APK_FILE_PATH` | ruta del APK en el servidor (opcional; por defecto `mobile/build/app/outputs/flutter-apk/app-release.apk`) |
+| `APK_DOWNLOAD_URL` | link externo del APK (opcional; tiene prioridad sobre el archivo local) |
+| `APK_MAX_ATTACH_MB` | límite de adjunto del proveedor (15 en Gmail/SMTP, 25 en Resend) |
+| `PUBLIC_BASE_URL` | URL pública del backend; Render inyecta `RENDER_EXTERNAL_URL` automáticamente |
 | `GROQ_API_KEY` | opcional (IA) |
+
+### APK en el correo de bienvenida
+
+El correo adjunta el APK automáticamente **si pesa menos que `APK_MAX_ATTACH_MB`**.
+Si el APK es más grande (el build actual ronda los 80 MB), el correo incluye un
+botón de **descarga directa** servido por `/api/app/apk`, así el conductor recibe
+todo en el mismo mensaje. Para que quepa como adjunto:
+
+```bash
+cd mobile
+flutter build apk --split-per-abi
+# use app-arm64-v8a-release.apk y apunte APK_FILE_PATH a ese archivo
+```
+
+Los APK por arquitectura pesan menos, pero aun así pueden superar el límite de
+Gmail (~25 MB); en ese caso use Resend o mantenga el enlace de descarga.
 
 ## 3. Cargar esquema y datos (una vez)
 

@@ -27,6 +27,12 @@ function publicUser(user) {
   return safe;
 }
 
+// Origen público del backend para enlazar la descarga del APK desde el correo.
+function requestBaseUrl(req) {
+  if (process.env.PUBLIC_BASE_URL || process.env.RENDER_EXTERNAL_URL) return '';
+  return `${req.protocol}://${req.get('host')}`;
+}
+
 module.exports = (store) => {
   const router = express.Router();
 
@@ -114,12 +120,13 @@ module.exports = (store) => {
         /* el registro no se pierde si el vehículo falla */
       }
       // Correo de bienvenida: si falla, se avisa al admin sin perder el registro.
-      const correo = await sendWelcomeEmail({ to: email, nombre, cedula: documento });
+      const correo = await sendWelcomeEmail({ to: email, nombre, cedula: documento, baseUrl: requestBaseUrl(req) });
       res.status(201).json({
         driver,
         user: publicUser(user),
         vehicle,
         email_enviado: correo.enviado,
+        email_apk: correo.apk || null,
         ...(correo.enviado
           ? { email_via: correo.via, ...(correo.preview ? { email_preview: correo.preview } : {}) }
           : { email_error: correo.error })
@@ -180,6 +187,27 @@ module.exports = (store) => {
     // con su telemetría, eventos y alertas.
     const cascada = await store.deleteConductor(current.id);
     res.json({ ok: true, eliminados: cascada });
+  });
+
+  // Reenvía el correo de bienvenida (credenciales + APK adjunto/enlace).
+  router.post('/:id/resend-welcome', requireAdmin, async (req, res) => {
+    const driver = await store.getDriver(req.params.id);
+    if (!driver) return res.status(404).json({ error: 'Conductor no encontrado' });
+    if (!driver.email) return res.status(400).json({ error: 'El conductor no tiene correo registrado' });
+    const correo = await sendWelcomeEmail({
+      to: driver.email,
+      nombre: driver.nombre,
+      cedula: driver.documento,
+      baseUrl: requestBaseUrl(req)
+    });
+    res.status(correo.enviado ? 200 : 502).json({
+      ok: correo.enviado,
+      email_enviado: correo.enviado,
+      email_via: correo.via,
+      email_apk: correo.apk || null,
+      ...(correo.preview ? { email_preview: correo.preview } : {}),
+      ...(correo.error ? { email_error: correo.error } : {})
+    });
   });
 
   return router;

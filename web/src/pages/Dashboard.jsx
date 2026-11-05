@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { api } from '../api/client';
-import { Truck, Users, BellRing, Activity, AlertTriangle, ShieldCheck, ArrowRight, AlertOctagon, Radar, MapPin, Navigation } from 'lucide-react';
+import { Truck, Users, BellRing, Activity, AlertTriangle, ShieldCheck, ArrowRight, AlertOctagon, Radar, MapPin, Navigation, Camera, FileBarChart, UserPlus, CheckCircle2, Circle } from 'lucide-react';
 import { StatCard, Semaphore, RiskBadge, Spinner } from '../components/ui';
 import LiveCamera from '../components/LiveCamera';
 import FatigueChart from '../components/FatigueChart';
@@ -98,6 +98,49 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="card p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="section-title">Flujo de trabajo del turno</p>
+            <p className="mt-1 text-xs text-muted">Siga estos pasos para operar, atender y entregar la información del día.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/conductores" className="btn-ghost px-3 py-2 text-[11px]"><UserPlus size={13} /> Registrar conductor</Link>
+            <Link to="/camara" className="btn-ghost px-3 py-2 text-[11px]"><Camera size={13} /> Cámara IA</Link>
+            <Link to="/reportes" className="btn-ghost px-3 py-2 text-[11px]"><FileBarChart size={13} /> Exportar reporte</Link>
+          </div>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {workflowSteps({ conductores: summary?.conductores || 0, vehiculos: vehicles.length, alertas: activeAlerts.length }).map((step, i) => (
+            <Link
+              key={step.title}
+              to={step.to}
+              className={`group rounded-xl border p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                step.done
+                  ? 'border-success/30 bg-success/5 hover:border-success/60'
+                  : 'border-border bg-surface-2 hover:border-info/50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-black ${step.done ? 'bg-success/15 text-success' : 'bg-surface-3 text-faint'}`}>
+                  {step.done ? <CheckCircle2 size={15} /> : i + 1}
+                </span>
+                {step.done ? (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-success">Listo</span>
+                ) : (
+                  <Circle size={12} className="text-faint group-hover:text-info" />
+                )}
+              </div>
+              <p className="mt-2 text-[11px] font-bold leading-tight text-text">{step.title}</p>
+              <p className="mt-1 text-[10px] leading-snug text-faint">{step.desc}</p>
+              <p className="mt-2 text-[9px] font-bold uppercase tracking-wider text-info opacity-0 transition-opacity group-hover:opacity-100">
+                Abrir →
+              </p>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2 space-y-6">
           <LiveCamera vehicle={focus} height={340} />
@@ -183,6 +226,41 @@ export default function Dashboard() {
       {!summary && <Spinner label="Cargando panel…" />}
     </div>
   );
+}
+
+function workflowSteps({ conductores, vehiculos, alertas }) {
+  return [
+    {
+      title: 'Registrar conductor',
+      desc: conductores ? `${conductores} conductor(es) en el sistema` : 'Cree la cuenta y su vehículo',
+      to: '/conductores',
+      done: conductores > 0
+    },
+    {
+      title: 'Enviar acceso + APK',
+      desc: 'Correo automático con credenciales y enlace/adjunto',
+      to: '/conductores',
+      done: conductores > 0
+    },
+    {
+      title: 'Monitorear flota',
+      desc: vehiculos ? `${vehiculos} vehículo(s) en seguimiento` : 'Abra el monitoreo en vivo',
+      to: '/monitoreo',
+      done: vehiculos > 0
+    },
+    {
+      title: 'Gestionar alertas',
+      desc: alertas ? `${alertas} alerta(s) activa(s) por atender` : 'Sin alertas pendientes',
+      to: '/alertas',
+      done: alertas === 0
+    },
+    {
+      title: 'Exportar reporte',
+      desc: 'PDF, Excel o HTML listo para entregar',
+      to: '/reportes',
+      done: false
+    }
+  ];
 }
 
 function RiskDonut({ data, total }) {

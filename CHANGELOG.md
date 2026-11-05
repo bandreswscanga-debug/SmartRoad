@@ -3,6 +3,28 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 Este proyecto no ha tenido lanzamientos públicos numerados uniformemente hasta esta versión.
 
+## [Sin publicar]
+
+### IA y operación
+- Detección de somnolencia en el panel web reconstruida: malla facial de 478 puntos,
+  blendshapes de MediaPipe, PERCLOS por ventana temporal, parpadeo, bostezo, postura
+  de cabeza, puntaje de riesgo, calibración personal e histéresis.
+- Nuevo **Copiloto IA** (`/asistente`) con contexto real de flota, alertas y eventos;
+  endpoints `POST /api/ia/consulta` y `GET /api/ia/resumen` sobre Groq.
+- Panel de inicio con flujo operativo guiado y acciones rápidas.
+
+### Correo y APK
+- Correo de bienvenida rediseñado (HTML profesional) con credenciales y pasos de inicio.
+- Adjunto automático del APK cuando respeta el límite del proveedor; si no, botón de
+  descarga directa servido por `GET /api/app/apk` (siempre incluido en el correo).
+- `GET /api/app-info` con estado, tamaño y modo de entrega del APK.
+- Reenvío del correo desde Conductores (`POST /api/drivers/:id/resend-welcome`).
+
+### Exportaciones
+- Menú de exportación en Historial, Reportes y Conductores: PDF (impresión A4),
+  Excel con formato, HTML autocontenido y CSV con BOM UTF-8.
+- Informes con encabezado de marca, KPIs, tablas con insignias de riesgo y notas.
+
 ## [v0.1.0-beta] — 2026-09-17
 
 Fase beta del sistema. Primer lanzamiento versionado del monorepo.

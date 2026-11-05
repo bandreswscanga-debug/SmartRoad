@@ -39,6 +39,9 @@ async function createApp() {
   }
 
   const app = express();
+  // Detrás de Render/proxies: permite construir URLs públicas correctas
+  // (req.protocol) para el enlace de descarga del APK en los correos.
+  app.set('trust proxy', 1);
   app.use(
     helmet({
       contentSecurityPolicy: false

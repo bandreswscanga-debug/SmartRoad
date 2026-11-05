@@ -1,10 +1,16 @@
-import { Smartphone, Activity, History, SlidersHorizontal, Siren, Bluetooth, MapPin, Bell, Download, TerminalSquare } from 'lucide-react';
+import { Smartphone, Activity, History, SlidersHorizontal, Siren, Bluetooth, MapPin, Bell, Download, TerminalSquare, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useApp } from '../store/AppContext';
-import { useState } from 'react';
+import { api } from '../api/client';
+import { useEffect, useState } from 'react';
 
 export default function AppMovil() {
   const { config } = useApp();
   const [showCommands, setShowCommands] = useState(false);
+  const [appInfo, setAppInfo] = useState(null);
+
+  useEffect(() => {
+    api.appInfo().then(setAppInfo).catch(() => {});
+  }, []);
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
@@ -36,7 +42,7 @@ export default function AppMovil() {
 
         <div className="relative">
           <div className="card h-full p-6">
-            <p className="section-title mb-4">Build</p>
+            <p className="section-title mb-4">APK y distribución</p>
             <div className="rounded-2xl border border-border bg-surface-2 p-4">
               <div className="flex items-center gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-danger/15 text-danger-bright">
@@ -44,18 +50,55 @@ export default function AppMovil() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-bold">APK del conductor</p>
-                  <p className="text-[11px] text-faint">Se compila con Flutter desde la carpeta mobile/ · paquete com.seaa.smartroad.sos</p>
+                  <p className="text-[11px] text-faint">Flutter · paquete com.seaa.smartroad.sos</p>
                 </div>
               </div>
-              <button className="btn-primary mt-4 w-full" onClick={() => setShowCommands((v) => !v)}>
-                <Download size={16} /> {showCommands ? 'Ocultar pasos' : 'Ver pasos para compilar'}
+
+              <div className="mt-3 space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted">Estado</span>
+                  {appInfo?.apkDisponible ? (
+                    <span className="flex items-center gap-1 font-bold text-success"><CheckCircle2 size={12} /> Disponible</span>
+                  ) : (
+                    <span className="flex items-center gap-1 font-bold text-warning"><AlertTriangle size={12} /> No encontrado</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted">Tamaño</span>
+                  <span className="font-mono font-bold text-text">{appInfo?.apkTamanoMb ? `${appInfo.apkTamanoMb} MB` : '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted">Correo</span>
+                  <span className={`text-right font-bold ${appInfo?.apkSeAdjunta ? 'text-success' : 'text-warning'}`}>
+                    {appInfo?.apkSeAdjunta ? 'Se adjunta' : `Enlace (límite ${appInfo?.apkAdjuntoMaxMb ?? 15} MB)`}
+                  </span>
+                </div>
+              </div>
+
+              {appInfo?.apkUrl ? (
+                <a className="btn-primary mt-4 w-full" href={appInfo.apkUrl} target="_blank" rel="noreferrer">
+                  <Download size={16} /> Descargar APK
+                  {appInfo.apkTamanoMb ? <span className="text-[10px] opacity-80">({appInfo.apkTamanoMb} MB)</span> : null}
+                </a>
+              ) : (
+                <p className="mt-4 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-[10px] leading-relaxed text-muted">
+                  Configure <span className="font-mono text-text">APK_FILE_PATH</span> o <span className="font-mono text-text">APK_DOWNLOAD_URL</span> en el backend para habilitar la descarga.
+                </p>
+              )}
+
+              <button className="btn-ghost mt-2 w-full text-[11px]" onClick={() => setShowCommands((v) => !v)}>
+                <TerminalSquare size={14} /> {showCommands ? 'Ocultar pasos' : 'Ver pasos para compilar'}
               </button>
               {showCommands && (
                 <pre className="mt-3 overflow-x-auto rounded-lg border border-border bg-bg p-3 text-[11px] leading-relaxed text-muted animate-rise">
 {`cd SmartRoadSOS/mobile
 flutter pub get
 flutter build apk --release
-# → build/app/outputs/flutter-apk/app-release.apk`}
+# → build/app/outputs/flutter-apk/app-release.apk
+
+# APK más liviano (por arquitectura):
+flutter build apk --split-per-abi
+# → app-arm64-v8a-release.apk (recomendado)`}
                 </pre>
               )}
             </div>
@@ -63,6 +106,7 @@ flutter build apk --release
               <li className="flex justify-between gap-2"><span>Framework</span><span className="font-mono text-text">Flutter · Dart</span></li>
               <li className="flex justify-between gap-2"><span>API backend</span><span className="font-mono text-text">http://10.0.2.2:4000</span></li>
               <li className="flex justify-between gap-2"><span>N° emergencia</span><span className="font-mono text-text">{config?.numero_emergencia || '123'}</span></li>
+              <li className="flex justify-between gap-2"><span>Servido por</span><span className="flex items-center gap-1 font-mono text-text">/api/app/apk <ExternalLink size={10} /></span></li>
             </ul>
           </div>
         </div>
