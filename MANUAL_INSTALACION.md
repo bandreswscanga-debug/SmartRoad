@@ -238,9 +238,12 @@ docker compose up -d --build
 | Puerto | Servicio | Uso |
 |--------|----------|-----|
 | 4000 | backend | API REST + panel web + Swagger |
-| 3306 | MySQL | Base de datos (solo accesible dentro de la red Docker) |
+| 3307 | MySQL | Base de datos (solo accesible desde el host; dentro de Docker sigue en 3306) |
+
+Si el puerto 3307 ya está en uso, modificar `docker-compose.yml` en la sección `ports` del servicio `mysql` (ej. `3308:3306`). El puerto derecho (`3306`) nunca debe cambiar porque es el que usa el backend dentro de la red Docker.
 
 Si el puerto 4000 ya está en uso, modificar `docker-compose.yml` en la sección `ports` del servicio `backend` (ej. `4001:4000`) y usar `http://localhost:4001` para el health check.
+
 
 ---
 

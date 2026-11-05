@@ -11,7 +11,7 @@ services:
       MYSQL_USER: smartroad
       MYSQL_PASSWORD: smartroad
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - smartroad_mysql_data:/var/lib/mysql
     healthcheck:

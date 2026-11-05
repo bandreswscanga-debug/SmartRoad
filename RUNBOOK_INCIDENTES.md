@@ -206,8 +206,51 @@ docker compose up -d --build backend
 Validar en `http://localhost:4001/api/health`.
 
 ---
+## Incidente 5: Puerto de MySQL (3306/3307) ya está en uso en el host
 
-## Incidente 5: Fallo al construir la imagen (build falla)
+### Síntomas
+- Error de Docker: `failed to bind host port 0.0.0.0:3306/tcp: address already in use` o similar con 3307.
+- Otro servicio (ej. MySQL local instalado) ya ocupa el puerto de MySQL en el host.
+- El contenedor `smartroad-mysql` no puede iniciar.
+
+### Diagnóstico
+
+```bash
+ss -tlnp | grep -E '3306|3307'
+```
+
+Identificar el proceso que ocupa el puerto.
+
+### Resolución
+
+Opción 1: Detener el servicio que ocupa el puerto (si no es necesario).
+
+Opción 2: Cambiar el puerto expuesto de MySQL en `docker-compose.yml`:
+
+```yaml
+ports:
+  - "3308:3306"
+```
+
+El puerto derecho (`3306`) **nunca debe cambiar**, porque es el que usa el backend dentro de la red Docker (`MYSQL_URL: mysql://smartroad:smartroad@mysql:3306/smartroad_sos`). Solo cambia el puerto izquierdo (el del host).
+
+Luego:
+
+```bash
+docker compose up -d --build smartroad-mysql
+docker compose restart backend
+```
+
+Validar:
+
+```bash
+curl -s http://localhost:4000/api/health
+```
+
+Debe devolver `"conectado":true` y `"motor":"mysql"`.
+
+---
+## Incidente 6: Fallo al construir la imagen (build falla)
 
 ### Síntomas
 - `docker compose up -d --build` falla en el paso de `RUN pnpm install` o `pnpm build`.
