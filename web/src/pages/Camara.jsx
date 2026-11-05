@@ -1,44 +1,15 @@
-import { Suspense, lazy, useState } from 'react';
 import CameraDrowsiness from '../components/CameraDrowsiness';
 
-const FaceApiCamera = lazy(() => import('../components/FaceApiCamera'));
-
 export default function Camara() {
-  const [modo, setModo] = useState('mediapipe');
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div>
         <h1 className="text-lg font-black">Cámara IA</h1>
         <p className="text-xs text-muted">
-          Prueba de detección de somnolencia por visión artificial. Aquí se activa la cámara;
-          el Monitoreo queda solo para telemetría y flota.
+          Detección de somnolencia por visión artificial. Usa los botones para iniciar o detener la cámara.
         </p>
       </div>
-      <div className="flex gap-2">
-        <button
-          className={modo === 'mediapipe' ? 'btn-primary' : 'btn-ghost'}
-          onClick={() => setModo('mediapipe')}
-        >
-          Modo MediaPipe
-        </button>
-        <button
-          className={modo === 'faceapi' ? 'btn-primary' : 'btn-ghost'}
-          onClick={() => setModo('faceapi')}
-        >
-          Modo alterno face-api
-        </button>
-      </div>
-      {modo === 'mediapipe' ? (
-        <CameraDrowsiness />
-      ) : (
-        <Suspense
-          fallback={
-            <div className="card p-5 text-xs text-muted">Cargando motor alterno…</div>
-          }
-        >
-          <FaceApiCamera />
-        </Suspense>
-      )}
+      <CameraDrowsiness />
     </div>
   );
 }

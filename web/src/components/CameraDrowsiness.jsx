@@ -13,19 +13,17 @@ let landmarkerPromise = null;
 function getLandmarker() {
   if (!landmarkerPromise) {
     landmarkerPromise = (async () => {
-      const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
       try {
+        const fileset = await FilesetResolver.forVisionTasks(MODEL_URL);
+        // Usar CPU por defecto para mayor compatibilidad
         return await FaceLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: TASK_URL, delegate: 'GPU' },
-          runningMode: 'VIDEO',
-          numFaces: 1
-        });
-      } catch (_gpu) {
-        return FaceLandmarker.createFromOptions(fileset, {
           baseOptions: { modelAssetPath: TASK_URL, delegate: 'CPU' },
           runningMode: 'VIDEO',
           numFaces: 1
         });
+      } catch (err) {
+        console.error('[MediaPipe] Error al cargar FaceLandmarker:', err);
+        throw new Error('No se pudo cargar el modelo de IA. Verifica que los archivos de /mediapipe/ estén disponibles.');
       }
     })();
   }
@@ -178,7 +176,15 @@ export default function CameraDrowsiness() {
         stream.getTracks().forEach((t) => t.stop());
         throw new Error('La cámara entrega imagen congelada o no reproduce. Cierre otras apps que la usen y pulse Iniciar de nuevo.');
       }
-      await getLandmarker();
+      try {
+        await getLandmarker();
+      } catch (err) {
+        if (!mountedRef.current) return;
+        stopEverything();
+        setError(err?.message || 'Error al cargar el modelo de IA de MediaPipe');
+        setPhase('error');
+        return;
+      }
       if (!mountedRef.current) return;
 
       detectorRef.current = createDrowsinessDetector();
@@ -301,9 +307,9 @@ export default function CameraDrowsiness() {
         </div>
         {phase === 'idle' || phase === 'error' || phase === 'starting' ? (
           <div className="flex items-center gap-2">
-            {phase === 'starting' && <Loader2 size={16} className="animate-spin text-info" />}
             <button className="btn-primary" onClick={startTest} disabled={phase === 'starting'}>
-              <Video size={16} /> Iniciar cámara
+              {phase === 'starting' ? <Loader2 size={16} className="animate-spin" /> : <Video size={16} />}
+              {phase === 'starting' ? 'Cargando IA...' : 'Iniciar cámara'}
             </button>
           </div>
         ) : (
@@ -314,8 +320,8 @@ export default function CameraDrowsiness() {
       </div>
 
       {phase === 'starting' && (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3.5 py-3 text-xs text-muted">
-          <Loader2 size={15} className="animate-spin text-info" /> Solicitando cámara y cargando la IA de visión…
+        <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-3.5 py-3 text-xs text-info">
+          <Loader2 size={15} className="animate-spin" /> Solicitando cámara y cargando modelo FaceLandmarker (MediaPipe)... Esto puede tardar unos segundos.
         </div>
       )}
 
